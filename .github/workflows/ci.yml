@@ -118,7 +118,7 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.windows == 'true'
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     env:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
     steps:
