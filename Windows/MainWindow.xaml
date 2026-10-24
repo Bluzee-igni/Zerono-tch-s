@@ -1033,6 +1033,20 @@
                         </Border>
                     </StackPanel>
 
+                    <ctrl:ActionBorder x:Name="MicMutedBadge"
+                                       Width="14" Height="14"
+                                       CornerRadius="7"
+                                       Background="#E5FF3B30"
+                                       Margin="0,9,38,0"
+                                       VerticalAlignment="Top"
+                                       HorizontalAlignment="Right"
+                                       Visibility="Collapsed"
+                                       Cursor="Hand"
+                                       ToolTip="Microphone is Muted - Click to Unmute"
+                                       Click="MicMutedBadge_Click">
+                        <TextBlock Text="🔇" FontSize="8" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-0.5,0,0"/>
+                    </ctrl:ActionBorder>
+
                     <Grid x:Name="BluetoothNotification"
                           Opacity="0"
                           Visibility="Collapsed"
@@ -1225,6 +1239,79 @@
                                 </Grid>
                             </StackPanel>
                         </Grid>
+                    </Grid>
+
+                    <Grid x:Name="MicAlertNotification"
+                          Opacity="0"
+                          Visibility="Collapsed"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Margin="14,0,10,0">
+                        <Grid.RenderTransform>
+                            <TranslateTransform x:Name="MicAlertNotificationTranslate" Y="0"/>
+                        </Grid.RenderTransform>
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,0,4">
+                            <TextBlock x:Name="MicAlertIcon"
+                                       Text="🎙️"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,6,0"/>
+                            <TextBlock x:Name="MicAlertText"
+                                       Text="Microphone Muted"
+                                       Foreground="{x:Static svc:UiPalette.PrimaryBrush}"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       FontFamily="{StaticResource MainSystemFont}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid x:Name="AppToastNotification"
+                          Opacity="0"
+                          Visibility="Collapsed"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Margin="12,0"
+                          Cursor="Hand"
+                          MouseLeftButtonUp="AppToastNotification_MouseLeftButtonUp">
+                        <Grid.RenderTransform>
+                            <TranslateTransform x:Name="AppToastNotificationTranslate" Y="0"/>
+                        </Grid.RenderTransform>
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,0,4">
+                            <TextBlock x:Name="AppToastIcon"
+                                       Text="💬"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,6,0"/>
+                            <TextBlock x:Name="AppToastSender"
+                                       Text="Discord"
+                                       Foreground="{x:Static svc:UiPalette.PrimaryBrush}"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       FontFamily="{StaticResource MainSystemFont}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,4,0"/>
+                            <TextBlock Text=":"
+                                       Foreground="#80FFFFFF"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,4,0"/>
+                            <TextBlock x:Name="AppToastMessage"
+                                       Text="New message"
+                                       Foreground="#CCFFFFFF"
+                                       FontSize="11"
+                                       FontWeight="Normal"
+                                       FontFamily="{StaticResource MainSystemFont}"
+                                       MaxWidth="180"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Grid>
 
                     <Grid x:Name="MusicCompactContent"

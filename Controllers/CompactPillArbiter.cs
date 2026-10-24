@@ -9,7 +9,9 @@ public enum CompactPillSlot
     Volume = 2,
     Bluetooth = 3,
     Charging = 4,
-    Greeting = 5
+    Greeting = 5,
+    Mic = 6,
+    Notification = 7
 }
 
 public sealed class CompactPillArbiter

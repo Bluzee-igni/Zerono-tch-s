@@ -361,6 +361,7 @@ public partial class MainWindow : Window
 
         _systemMonitorModule = systemMonitorModule;
         InitializeSystemMonitorPresenter();
+        InitializeSystemAlerts();
 
         _collapsedWidth = GetCollapsedWidth();
         _collapsedHeight = GetCollapsedHeight();
@@ -720,6 +721,7 @@ public partial class MainWindow : Window
         _volumeSyncTimer?.Stop();
         _lyricsService?.Dispose();
         DisposeSpotifyCanvasLifecycle();
+        DisposeSystemAlerts();
         _notchManager?.Dispose();
         _zOrderManager?.Dispose();
         TrayIcon?.Dispose();

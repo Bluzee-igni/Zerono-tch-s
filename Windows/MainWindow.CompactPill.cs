@@ -20,7 +20,8 @@ public partial class MainWindow
         foreach (var element in new UIElement[] { MusicViz, CompactThumbnailBorder,
             MusicCompactContent, CollapsedContent,
             ClipboardCheckIcon, ClipboardCopiedText, VolumeIndicatorContainer,
-            BluetoothNotification, BluetoothDisconnectNotification, ChargingNotification })
+            BluetoothNotification, BluetoothDisconnectNotification, ChargingNotification,
+            MicAlertNotification, AppToastNotification })
             element.IsVisibleChanged += (_, _) => EnforceCompactPresentationOwner();
     }
 
@@ -38,7 +39,7 @@ public partial class MainWindow
         try
         {
             var owner = _compactPillArbiter.ActiveSlot;
-            if (owner is CompactPillSlot.Bluetooth or CompactPillSlot.Charging or CompactPillSlot.Greeting or CompactPillSlot.Volume)
+            if (owner is CompactPillSlot.Bluetooth or CompactPillSlot.Charging or CompactPillSlot.Greeting or CompactPillSlot.Volume or CompactPillSlot.Mic or CompactPillSlot.Notification)
             {
                 HideCompactSurface(MusicCompactContent);
                 HideCompactSurface(CollapsedContent);
@@ -62,6 +63,8 @@ public partial class MainWindow
                 HideCompactSurface(BluetoothDisconnectNotification);
             }
             if (owner != CompactPillSlot.Charging) HideCompactSurface(ChargingNotification);
+            if (owner != CompactPillSlot.Mic) HideCompactSurface(MicAlertNotification);
+            if (owner != CompactPillSlot.Notification) HideCompactSurface(AppToastNotification);
         }
         finally { _enforcingCompactPresentation = false; }
     }
@@ -115,6 +118,12 @@ public partial class MainWindow
                 CancelChargingGlanceImmediate();
                 break;
             case CompactPillSlot.Greeting:
+                break;
+            case CompactPillSlot.Mic:
+                CancelMicAlertImmediate();
+                break;
+            case CompactPillSlot.Notification:
+                CancelAppToastImmediate();
                 break;
         }
     }
