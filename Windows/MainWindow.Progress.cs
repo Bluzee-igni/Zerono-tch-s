@@ -32,7 +32,7 @@ public partial class MainWindow
 
     private void LyricsTimer_Tick(object? sender, EventArgs e)
     {
-        if (_isExpanded && !_isMusicExpanded && _isLyricsActive)
+        if (!_cleanedUp && (_isExpanded || _isMusicCompactMode) && _isLyricsActive)
         {
             UpdateLyricsDisplay();
         }

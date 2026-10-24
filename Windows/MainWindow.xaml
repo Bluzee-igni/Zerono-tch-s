@@ -722,7 +722,7 @@
                         <Border x:Name="VolumeIndicatorContainer"
                                 VerticalAlignment="Center"
                                 HorizontalAlignment="Stretch"
-                                Height="14"
+                                Height="16"
                                 Margin="16,0,16,0"
                                 Opacity="0"
                                 Visibility="Collapsed"
@@ -734,35 +734,63 @@
                                 MouseLeftButtonDown="VolumeIndicator_MouseDown"
                                 MouseMove="VolumeIndicator_MouseMove"
                                 MouseLeftButtonUp="VolumeIndicator_MouseUp">
-                            <Border Background="#33FFFFFF"
-                                    CornerRadius="3"
-                                    Height="6"
-                                    VerticalAlignment="Center">
-                                <Border x:Name="VolumeIndicatorFill"
-                                        HorizontalAlignment="Left"
+                            <Grid VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock x:Name="VolumeOsdIcon"
+                                           Grid.Column="0"
+                                           Text="🔊"
+                                           FontSize="10"
+                                           Foreground="#CCFFFFFF"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+
+                                <Border x:Name="VolumeTrackBorder"
+                                        Grid.Column="1"
+                                        Background="#33FFFFFF"
                                         CornerRadius="3"
                                         Height="6"
-                                        RenderTransformOrigin="0,0.5">
-                                    <Border.Resources>
-                                        <ctrl:VolumeFillWidthConverter x:Key="VolumeFillWidth"/>
-                                    </Border.Resources>
-                                    <Border.Tag>
-                                        <ScaleTransform x:Name="VolumeIndicatorScale" ScaleX="0"/>
-                                    </Border.Tag>
-                                    <Border.Width>
-                                        <MultiBinding Converter="{StaticResource VolumeFillWidth}">
-                                            <Binding ElementName="VolumeIndicatorContainer" Path="ActualWidth"/>
-                                            <Binding RelativeSource="{RelativeSource Self}" Path="Tag.ScaleX"/>
-                                        </MultiBinding>
-                                    </Border.Width>
-                                    <Border.Background>
-                                        <LinearGradientBrush x:Name="VolumeIndicatorGradient" StartPoint="0,0" EndPoint="1,0">
-                                            <GradientStop x:Name="VolumeIndicatorGradientStart" Color="White" Offset="0"/>
-                                            <GradientStop x:Name="VolumeIndicatorGradientEnd" Color="#CCCCCC" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Border.Background>
+                                        VerticalAlignment="Center">
+                                    <Border x:Name="VolumeIndicatorFill"
+                                            HorizontalAlignment="Left"
+                                            CornerRadius="3"
+                                            Height="6"
+                                            RenderTransformOrigin="0,0.5">
+                                        <Border.Resources>
+                                            <ctrl:VolumeFillWidthConverter x:Key="VolumeFillWidth"/>
+                                        </Border.Resources>
+                                        <Border.Tag>
+                                            <ScaleTransform x:Name="VolumeIndicatorScale" ScaleX="0"/>
+                                        </Border.Tag>
+                                        <Border.Width>
+                                            <MultiBinding Converter="{StaticResource VolumeFillWidth}">
+                                                <Binding ElementName="VolumeTrackBorder" Path="ActualWidth"/>
+                                                <Binding RelativeSource="{RelativeSource Self}" Path="Tag.ScaleX"/>
+                                            </MultiBinding>
+                                        </Border.Width>
+                                        <Border.Background>
+                                            <LinearGradientBrush x:Name="VolumeIndicatorGradient" StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop x:Name="VolumeIndicatorGradientStart" Color="White" Offset="0"/>
+                                                <GradientStop x:Name="VolumeIndicatorGradientEnd" Color="#CCCCCC" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                    </Border>
                                 </Border>
-                            </Border>
+
+                                <TextBlock x:Name="VolumeOsdText"
+                                           Grid.Column="2"
+                                           Text="0%"
+                                           FontSize="10.5"
+                                           FontWeight="SemiBold"
+                                           FontFamily="{StaticResource MainSystemFont}"
+                                           Foreground="#CCFFFFFF"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,0,0"/>
+                            </Grid>
                         </Border>
 
                         <Border x:Name="AnimationThumbnailBorder"
@@ -811,7 +839,7 @@
                             Margin="8,-2,0,0" Panel.ZIndex="199"
                             Background="Transparent"
                             CornerRadius="12,12,10,10"
-                            Width="94" Height="34"
+                            Width="150" Height="34"
                             Opacity="0"
                             Visibility="Collapsed"
                             MouseLeftButtonDown="NavIconsPanel_MouseLeftButtonDown"/>
@@ -835,7 +863,7 @@
                                     Width="22" Height="22"
                                     Background="Transparent"
                                     Cursor="Hand"
-                                    Margin="0,0,4,0"
+                                    Margin="0,0,8,0"
                                     Opacity="1.0"
                                     RenderTransformOrigin="0.5,0.5"
                                     PreviewMouseLeftButtonDown="NavIcon_PreviewMouseLeftButtonDown"
@@ -864,7 +892,7 @@
                                     Background="Transparent"
                                     Cursor="Hand"
                                     Opacity="0.45"
-                                    Margin="0,0,4,0"
+                                    Margin="0,0,8,0"
                                     RenderTransformOrigin="0.5,0.5"
                                     PreviewMouseLeftButtonDown="NavIcon_PreviewMouseLeftButtonDown"
                                     PreviewMouseMove="NavIcon_PreviewMouseMove"
@@ -891,7 +919,7 @@
                                     Width="22" Height="22"
                                     Background="Transparent"
                                     Cursor="Hand"
-                                    Margin="0,0,4,0"
+                                    Margin="0,0,8,0"
                                     Opacity="0.45"
                                     RenderTransformOrigin="0.5,0.5"
                                     PreviewMouseLeftButtonDown="NavIcon_PreviewMouseLeftButtonDown"
@@ -919,7 +947,7 @@
                                     Width="22" Height="22"
                                     Background="Transparent"
                                     Cursor="Hand"
-                                    Margin="0,0,4,0"
+                                    Margin="0,0,8,0"
                                     Opacity="0.45"
                                     RenderTransformOrigin="0.5,0.5"
                                     PreviewMouseLeftButtonDown="NavIcon_PreviewMouseLeftButtonDown"
@@ -947,7 +975,7 @@
                                     Width="22" Height="22"
                                     Background="Transparent"
                                     Cursor="Hand"
-                                    Margin="0,0,4,0"
+                                    Margin="0,0,8,0"
                                     Opacity="0.45"
                                     RenderTransformOrigin="0.5,0.5"
                                     PreviewMouseLeftButtonDown="NavIcon_PreviewMouseLeftButtonDown"
@@ -1287,6 +1315,43 @@
                             </Grid>
                         </Border>
 
+                        <Grid x:Name="CompactLyricsHost"
+                              Grid.Row="0" Grid.Column="1"
+                              VerticalAlignment="Center"
+                              Margin="6,0,6,0"
+                              ClipToBounds="True">
+                            <TextBlock x:Name="CompactLyricText"
+                                       Text=""
+                                       FontSize="11.5"
+                                       FontWeight="SemiBold"
+                                       FontFamily="{StaticResource MainSystemFont}"
+                                       Foreground="#F2FFFFFF"
+                                       TextTrimming="CharacterEllipsis"
+                                       TextAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Opacity="0">
+                                <TextBlock.RenderTransform>
+                                    <TranslateTransform x:Name="CompactLyricTranslate" Y="0"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                            <TextBlock x:Name="CompactTrackFallbackText"
+                                       Text=""
+                                       FontSize="11"
+                                       FontWeight="Medium"
+                                       FontFamily="{StaticResource MainSystemFont}"
+                                       Foreground="#B3FFFFFF"
+                                       TextTrimming="CharacterEllipsis"
+                                       TextAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Opacity="1">
+                                <TextBlock.RenderTransform>
+                                    <TranslateTransform x:Name="CompactTrackFallbackTranslate" Y="0"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                        </Grid>
+
                         <Grid x:Name="CompactHoverInfo"
                               Grid.Row="1"
                               Grid.Column="0"
@@ -1425,10 +1490,10 @@
                                         <TranslateTransform x:Name="BatteryTranslate" Y="-4"/>
                                     </TransformGroup>
                                 </Border.RenderTransform>
-                                <StackPanel Orientation="Horizontal">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Viewbox x:Name="LinkedDeviceBatteryIconView"
                                              Width="13" Height="13"
-                                             Margin="0,1.5,4,0"
+                                             Margin="0,0,4,0"
                                              VerticalAlignment="Center"
                                              Visibility="Collapsed">
                                         <Canvas Width="24" Height="24">
@@ -1440,13 +1505,14 @@
                                     <TextBlock x:Name="BatteryPercent"
                                                Text="{Binding Secondary.BatteryPercentText}"
                                                Style="{StaticResource SubtitleText}"
-                                               FontSize="12"
+                                               FontSize="11.5"
                                                Foreground="#CCFFFFFF"
-                                               FontWeight="Bold"
-                                               Margin="0,1,0,0"
+                                               FontWeight="SemiBold"
+                                               Margin="0,0,6,0"
                                                TextOptions.TextHintingMode="Animated"
                                                VerticalAlignment="Center"/>
-                                    <Grid Margin="4.51,0,0,0"
+                                    <Grid Margin="0"
+                                          VerticalAlignment="Center"
                                           SnapsToDevicePixels="True"
                                           UseLayoutRounding="True">
 
@@ -1705,7 +1771,7 @@
                             <Border x:Name="MediaWidget"
                                     Background="{StaticResource CardGradient}"
                                     CornerRadius="16"
-                                    Padding="12,12,4,2"
+                                    Padding="16,14,16,14"
                                     RenderOptions.ClearTypeHint="Enabled">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -1727,7 +1793,7 @@
                                             VerticalAlignment="Center"
                                             CornerRadius="14"
                                             Background="Transparent"
-                                            Margin="0,0,8,0"
+                                            Margin="0,0,14,0"
                                             Cursor="Hand"
                                             MouseLeftButtonDown="ThumbnailBorder_MouseLeftButtonDown"
                                             MouseRightButtonUp="Thumbnail_MouseRightButtonUp"
@@ -2001,6 +2067,8 @@
                         </Border>
 
                     </Grid>
+
+                        <Rectangle Grid.Column="1" Width="1" Fill="#1AFFFFFF" Margin="6,24,6,12" VerticalAlignment="Stretch" IsHitTestVisible="False"/>
 
                         <Grid Grid.Column="2" Margin="0,20,-1,0" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Grid.IsSharedSizeScope="True" RenderOptions.ClearTypeHint="Enabled">
                             <!-- Center each surface independently so collapsing lyrics after a fade

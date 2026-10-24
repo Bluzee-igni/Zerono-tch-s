@@ -158,14 +158,7 @@ public partial class MainWindow
         if (result.IsNewTrack)
         {
             ClearLyrics();
-            if (isSpotify)
-            {
-                FetchLyricsForTrack(info).SafeFireAndForget("LYRICS");
-            }
-            else if (isYouTube)
-            {
-                FetchSubtitlesForTrack(info).SafeFireAndForget("SUBTITLES");
-            }
+            FetchLyricsForTrack(info).SafeFireAndForget("LYRICS");
         }
         else
         {
@@ -175,7 +168,7 @@ public partial class MainWindow
                 string targetKey = $"yt:{info.YouTubeVideoId}";
                 if (targetKey != _lyricsTrackKey || (!_isLyricsActive && (_currentLyrics == null || _currentLyrics.Count == 0)))
                 {
-                    FetchSubtitlesForTrack(info).SafeFireAndForget("SUBTITLES");
+                    FetchLyricsForTrack(info).SafeFireAndForget("LYRICS");
                 }
             }
         }

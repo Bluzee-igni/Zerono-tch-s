@@ -32,6 +32,7 @@ public partial class MainWindow : Window
     private readonly ISettingsService _settingsService;
     private readonly NotchManager _notchManager;
     private readonly IMediaDetectionService _mediaService;
+    private readonly IVolumeService? _volumeService;
     private readonly IUpdateService? _updateService;
     private readonly ShellViewModel _viewModel;
     private readonly UiScheduledTimer _updateTimer;
@@ -323,6 +324,11 @@ public partial class MainWindow : Window
         _notchManager = new NotchManager(this, _settings, _transitionCoordinator);
         _mediaService = mediaService;
         _updateService = updateService;
+        _volumeService = App.Services.GetService(typeof(IVolumeService)) as IVolumeService;
+        if (_volumeService != null)
+        {
+            _volumeService.VolumeChanged += OnHardwareVolumeChanged;
+        }
         if (_updateService != null)
         {
             _updateService.UpdateCheckCompleted += OnUpdateCheckCompleted;
@@ -686,6 +692,10 @@ public partial class MainWindow : Window
         _bluetoothModule.DeviceConnected -= BluetoothModule_DeviceConnected;
         _bluetoothModule.DeviceDisconnected -= BluetoothModule_DeviceDisconnected;
         AnimationConfig.ReduceMotionChanged -= OnReduceMotionChanged;
+        if (_volumeService != null)
+        {
+            _volumeService.VolumeChanged -= OnHardwareVolumeChanged;
+        }
         DisposeCalendarPresenter();
         _privacyModule.StateChanged -= PrivacyModule_StateChanged;
         WeatherWidgetView.Dispose();

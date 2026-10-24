@@ -372,10 +372,9 @@ public partial class MainWindow
             UpdateVolumeIcon(newVolume, false);
         }
     }
-    private void ShowVolumeIndicator(float volume)
+    private void ShowVolumeIndicator(float volume, bool isMuted = false)
     {
         if (VolumeIndicatorContainer == null || VolumeIndicatorFill == null) return;
-        if (!_isMusicCompactMode) return;
         if (_isExpanded || _isAnimating) return;
 
         bool animateFill = _isVolumeIndicatorActive;
@@ -405,7 +404,7 @@ public partial class MainWindow
                 _compactThumbnailHoverLeaveTimer.Stop();
 
                 NotchBorder.BeginAnimation(HeightProperty, null);
-                AnimateCompactWidth(_collapsedWidth + 20, _dur400, _easeExpOut6, _volumeIndicatorToken);
+                AnimateCompactWidth(_collapsedWidth + 24, _dur400, _easeExpOut6, _volumeIndicatorToken);
                 var heightAnim = MakeAnim(_collapsedHeight, _dur400, _easeExpOut6, VNotch.Services.AnimationConfig.TargetFps);
                 NotchBorder.BeginAnimation(HeightProperty, heightAnim);
 
@@ -422,7 +421,7 @@ public partial class MainWindow
             }
             else
             {
-                AnimateCompactWidth(_collapsedWidth + 20, _dur350, _easeExpOut6, _volumeIndicatorToken);
+                AnimateCompactWidth(_collapsedWidth + 24, _dur350, _easeExpOut6, _volumeIndicatorToken);
             }
 
             MusicViz.BeginAnimation(OpacityProperty, null);
@@ -450,13 +449,23 @@ public partial class MainWindow
             VolumeIndicatorContainer.BeginAnimation(OpacityProperty, indicatorIn);
         }
 
-        SetVolumeFill(VolumeIndicatorScale, volume, animate: animateFill);
+        double displayVolume = isMuted ? 0 : volume;
+        SetVolumeFill(VolumeIndicatorScale, displayVolume, animate: animateFill);
+
+        if (VolumeOsdText != null)
+        {
+            VolumeOsdText.Text = isMuted ? "Mute" : $"{(int)Math.Round(volume * 100)}%";
+        }
+        if (VolumeOsdIcon != null)
+        {
+            VolumeOsdIcon.Text = isMuted || volume <= 0.001f ? "🔇" : volume < 0.5f ? "🔉" : "🔊";
+        }
 
         if (_volumeIndicatorHideTimer == null)
         {
             _volumeIndicatorHideTimer = new UiScheduledTimer
             {
-                Interval = TimeSpan.FromMilliseconds(1200)
+                Interval = TimeSpan.FromMilliseconds(1500)
             };
             _volumeIndicatorHideTimer.Tick += (s, e) =>
             {
@@ -468,6 +477,22 @@ public partial class MainWindow
         _volumeIndicatorHideTimer.Stop();
         _volumeIndicatorHideTimer.Start();
     }
+
+    public void OnHardwareVolumeChanged(float volume, bool isMuted)
+    {
+        if (_cleanedUp) return;
+        Dispatcher.BeginInvoke(() =>
+        {
+            _currentVolume = volume;
+            ShowVolumeIndicator(volume, isMuted);
+            if (_isExpanded)
+            {
+                SetVolumeFill(VolumeBarScale, isMuted ? 0 : volume, animate: true);
+                UpdateVolumeIcon(volume, isMuted);
+            }
+        });
+    }
+
     private void HideVolumeIndicator()
     {
         if (VolumeIndicatorContainer == null) return;
@@ -501,18 +526,25 @@ public partial class MainWindow
         };
         VolumeIndicatorContainer.BeginAnimation(OpacityProperty, fadeOut);
 
-        if (!_isClipboardPeekActive)
+        if (_isMusicCompactMode)
         {
-            CompactThumbnailBorder.Visibility = Visibility.Visible;
-            CompactThumbnailBorder.Opacity = 0;
-            CompactThumbnailBorder.BeginAnimation(OpacityProperty, null);
-            var thumbIn = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
-            CompactThumbnailBorder.BeginAnimation(OpacityProperty, thumbIn);
+            if (!_isClipboardPeekActive)
+            {
+                CompactThumbnailBorder.Visibility = Visibility.Visible;
+                CompactThumbnailBorder.Opacity = 0;
+                CompactThumbnailBorder.BeginAnimation(OpacityProperty, null);
+                var thumbIn = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
+                CompactThumbnailBorder.BeginAnimation(OpacityProperty, thumbIn);
+                ShowMusicVisualizer(duration: _dur100);
+            }
         }
-
-        if (!_isClipboardPeekActive)
+        else
         {
-            ShowMusicVisualizer(duration: _dur100);
+            CollapsedContent.Visibility = Visibility.Visible;
+            CollapsedContent.Opacity = 0;
+            CollapsedContent.BeginAnimation(OpacityProperty, null);
+            var contentIn = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
+            CollapsedContent.BeginAnimation(OpacityProperty, contentIn);
         }
     }
 

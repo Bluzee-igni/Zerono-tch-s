@@ -174,7 +174,7 @@ c1.513-0.625,3.253-0.275,4.407,0.885l17.862,17.951c2.088,2.098,2.088,5.488,0,7.5
                                               Width="{Binding ActualWidth, ElementName=ProgressSection}"
                                               VerticalAlignment="Top"
                                               HorizontalAlignment="Left"
-                                              Margin="0,2,0,0">
+                                              Margin="0,8,0,0">
                                             <Grid.Effect>
                                                 <DropShadowEffect BlurRadius="6" ShadowDepth="1.2" Direction="270" Opacity="0.55" Color="Black" RenderingBias="Performance"/>
                                             </Grid.Effect>
@@ -302,7 +302,7 @@ c1.513-0.625,3.253-0.275,4.407,0.885l17.862,17.951c2.088,2.098,2.088,5.488,0,7.5
                                                 </ctrl:ActionBorder>
                                         </Grid>
 
-                                        <Grid x:Name="ProgressSection" Grid.Row="1" Margin="0,8,0,0" Visibility="Visible">
+                                        <Grid x:Name="ProgressSection" Grid.Row="1" Margin="0,10,0,0" Visibility="Visible">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>

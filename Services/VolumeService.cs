@@ -6,6 +6,7 @@ namespace VNotch.Services;
 
 internal interface IVolumeEndpoint : IDisposable
 {
+    event Action<float, bool>? VolumeChanged;
     float Volume { get; set; }
     bool IsMuted { get; set; }
 }
@@ -25,6 +26,8 @@ public sealed class VolumeService : IVolumeService
     private int _deviceVersion;
     private int _endpointVersion;
     private bool _disposed;
+
+    public event Action<float, bool>? VolumeChanged;
 
     public bool IsAvailable
     {
@@ -47,6 +50,11 @@ public sealed class VolumeService : IVolumeService
     // that work until the next volume operation, under the normal service lock.
     private void OnDefaultDeviceChanged() => Interlocked.Increment(ref _deviceVersion);
 
+    private void OnEndpointVolumeChanged(float volume, bool isMuted)
+    {
+        VolumeChanged?.Invoke(volume, isMuted);
+    }
+
     public bool RefreshDefaultDevice()
     {
         lock (_sync) return InitializeLocked();
@@ -60,6 +68,7 @@ public sealed class VolumeService : IVolumeService
         try
         {
             _endpoint = _source.OpenDefault();
+            _endpoint.VolumeChanged += OnEndpointVolumeChanged;
             _endpointVersion = version;
             return true;
         }
@@ -157,8 +166,12 @@ public sealed class VolumeService : IVolumeService
     {
         var endpoint = _endpoint;
         _endpoint = null;
-        try { endpoint?.Dispose(); }
-        catch (Exception ex) { RuntimeLog.Log(LogCategory, $"Endpoint cleanup error: {ex.Message}"); }
+        if (endpoint != null)
+        {
+            endpoint.VolumeChanged -= OnEndpointVolumeChanged;
+            try { endpoint.Dispose(); }
+            catch (Exception ex) { RuntimeLog.Log(LogCategory, $"Endpoint cleanup error: {ex.Message}"); }
+        }
     }
 
     private sealed class CoreAudioVolumeEndpointSource : IVolumeEndpointSource, IMMNotificationClient
@@ -220,14 +233,28 @@ public sealed class VolumeService : IVolumeService
         private readonly MMDevice _device;
         private readonly AudioEndpointVolume _volume;
 
+        public event Action<float, bool>? VolumeChanged;
+
         public CoreAudioVolumeEndpoint(MMDevice device)
         {
             _device = device;
             _volume = device.AudioEndpointVolume;
+            _volume.OnVolumeNotification += OnEndpointNotification;
+        }
+
+        private void OnEndpointNotification(AudioVolumeNotificationData data)
+        {
+            VolumeChanged?.Invoke(data.MasterVolume, data.Muted);
         }
 
         public float Volume { get => _volume.MasterVolumeLevelScalar; set => _volume.MasterVolumeLevelScalar = value; }
         public bool IsMuted { get => _volume.Mute; set => _volume.Mute = value; }
-        public void Dispose() => _device.Dispose();
+
+        public void Dispose()
+        {
+            try { _volume.OnVolumeNotification -= OnEndpointNotification; }
+            catch { }
+            _device.Dispose();
+        }
     }
 }

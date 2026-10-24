@@ -2,6 +2,7 @@ namespace VNotch.Services;
 
 public interface IVolumeService : IDisposable
 {
+    event Action<float, bool>? VolumeChanged;
 
     bool IsAvailable { get; }
 

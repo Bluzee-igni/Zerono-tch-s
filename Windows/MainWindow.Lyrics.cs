@@ -85,7 +85,7 @@ public partial class MainWindow
     private enum SyncedTextSource { None, SpotifyLyrics, YouTubeSubtitles }
     private SyncedTextSource _syncedTextSource = SyncedTextSource.None;
     private string? _subtitleRequestKey;
-    private bool CanFetchSyncedText => _isExpanded && !_cleanedUp &&
+    private bool CanFetchSyncedText => !_cleanedUp &&
         !_isTimerView && !_isAudioView && !_isSecondaryView && !_isCameraView;
 
     private async Task FetchLyricsForTrack(MediaInfo info)
@@ -106,21 +106,21 @@ public partial class MainWindow
         _lyricsTrackKey = trackKey;
         _syncedTextSource = SyncedTextSource.SpotifyLyrics;
 
-        if (info.Platform != MediaPlatform.Spotify)
+        if (info.Platform == MediaPlatform.Spotify)
+        {
+            StartSpotifyCanvasFetch(info, trackKey);
+        }
+        else
         {
             ResetSpotifyCanvas();
-            HideLyricsWidget();
-            return;
         }
-
-        StartSpotifyCanvasFetch(info, trackKey);
 
         if (_isLyricsActive || _isExpanded)
         {
             _currentLyrics = null;
             _currentLyricIndex = -1;
             _lyricsProvider = "";
-            ShowLyricsSearchState(isYouTube: false);
+            ShowLyricsSearchState(isYouTube: info.Platform == MediaPlatform.YouTube);
         }
 
         int durationSec = (int)info.Duration.TotalSeconds;
@@ -131,7 +131,18 @@ public partial class MainWindow
 
         if (generation != _lyricsFetchGeneration || trackKey != _lyricsTrackKey) return;
 
-        ApplySyncedLines(lyrics?.Lines, info, provider: lyrics?.Provider);
+        if (lyrics != null && lyrics.Lines.Count > 0)
+        {
+            ApplySyncedLines(lyrics.Lines, info, provider: lyrics.Provider);
+        }
+        else if (info.Platform == MediaPlatform.YouTube || !string.IsNullOrEmpty(info.YouTubeVideoId))
+        {
+            await FetchSubtitlesForTrack(info);
+        }
+        else
+        {
+            ApplySyncedLines(null, info, provider: null);
+        }
     }
 
     private void StartSpotifyCanvasFetch(MediaInfo info, string trackKey)
@@ -893,13 +904,14 @@ public partial class MainWindow
             _currentLyricIndex = newIndex;
             string lineText = _currentLyrics[newIndex].Text;
             AnimateLyricLine(lineText, transitionFromSearch: false, transitionFromPlaceholder: fromPlaceholder);
+            UpdateCompactLyricsDisplay(lineText);
         }
         else if (newIndex < 0)
         {
             bool wasLyricActive = _currentLyricIndex >= 0;
             _currentLyricIndex = -1;
+            UpdateCompactLyricsDisplay(null);
 
-            // Show track info during instrumental gaps/intro — always use _currentMediaInfo for accurate data.
             string gapTitle = "";
             string gapArtist = "";
 
@@ -1275,6 +1287,84 @@ public partial class MainWindow
             || MediaPlatformExtensions.ParsePlatform(info.MediaSource ?? "") is MediaPlatform.YouTube or MediaPlatform.Browser;
     }
 
+    private string _lastCompactLyricLine = "";
+
+    private void UpdateCompactLyricsDisplay(string? lyricLine)
+    {
+        if (CompactLyricText == null || CompactTrackFallbackText == null) return;
+
+        bool hasLyric = !string.IsNullOrWhiteSpace(lyricLine);
+        string currentText = hasLyric ? lyricLine!.Trim() : "";
+
+        if (hasLyric)
+        {
+            if (string.Equals(_lastCompactLyricLine, currentText, StringComparison.Ordinal)) return;
+            _lastCompactLyricLine = currentText;
+
+            double textWidth = MeasureCompactTextWidth(currentText);
+            double targetWidth = Math.Clamp(textWidth + 84, _collapsedWidth, Math.Max(_collapsedWidth, 420));
+
+            if (!_isExpanded && _isMusicCompactMode && !_isVolumeIndicatorActive)
+            {
+                AnimateCompactWidth(targetWidth, TimeSpan.FromMilliseconds(350), _easeExpOut6, 0);
+            }
+
+            CompactTrackFallbackText.BeginAnimation(OpacityProperty, null);
+            CompactTrackFallbackText.Opacity = 0;
+
+            CompactLyricText.Text = currentText;
+            CompactLyricText.BeginAnimation(OpacityProperty, null);
+            var fadeIn = MakeAnim(0.0, 1.0, _dur200, _easeQuadOut);
+            CompactLyricText.BeginAnimation(OpacityProperty, fadeIn);
+
+            CompactLyricTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+            var slideIn = MakeAnim(4.0, 0.0, _dur200, _easeQuadOut);
+            CompactLyricTranslate.BeginAnimation(TranslateTransform.YProperty, slideIn);
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(_lastCompactLyricLine) && CompactTrackFallbackText.Opacity > 0.9) return;
+            _lastCompactLyricLine = "";
+
+            if (!_isExpanded && _isMusicCompactMode && !_isVolumeIndicatorActive)
+            {
+                AnimateCompactWidth(_collapsedWidth, TimeSpan.FromMilliseconds(350), _easeExpOut6, 0);
+            }
+
+            string fallback = "";
+            if (_currentMediaInfo != null && !string.IsNullOrWhiteSpace(_currentMediaInfo.CurrentTrack))
+            {
+                fallback = string.IsNullOrWhiteSpace(_currentMediaInfo.CurrentArtist)
+                    ? _currentMediaInfo.CurrentTrack
+                    : $"{_currentMediaInfo.CurrentTrack} • {_currentMediaInfo.CurrentArtist}";
+            }
+
+            CompactTrackFallbackText.Text = fallback;
+            CompactTrackFallbackText.BeginAnimation(OpacityProperty, null);
+            var fadeInFallback = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
+            CompactTrackFallbackText.BeginAnimation(OpacityProperty, fadeInFallback);
+
+            CompactLyricText.BeginAnimation(OpacityProperty, null);
+            CompactLyricText.Opacity = 0;
+        }
+    }
+
+    private double MeasureCompactTextWidth(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return 0;
+        var typeface = new Typeface(CompactLyricText.FontFamily, CompactLyricText.FontStyle, CompactLyricText.FontWeight, CompactLyricText.FontStretch);
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var formatted = new FormattedText(
+            text,
+            System.Globalization.CultureInfo.CurrentUICulture,
+            FlowDirection.LeftToRight,
+            typeface,
+            CompactLyricText.FontSize,
+            Brushes.White,
+            dpi.PixelsPerDip);
+        return formatted.Width;
+    }
+
     private void ClearLyrics()
     {
         ++_lyricsFetchGeneration;
@@ -1282,6 +1372,8 @@ public partial class MainWindow
         _lyricsTrackKey = "";
         _currentLyrics = null;
         _currentLyricIndex = -1;
+        _lastCompactLyricLine = "";
+        UpdateCompactLyricsDisplay(null);
         _subtitleFetchFailureCount = 0;
         _lastSubtitleFetchFailureTime = DateTime.MinValue;
         _syncedTextSource = SyncedTextSource.None;

@@ -26,7 +26,13 @@ internal sealed partial class LyricsService : IDisposable
     [GeneratedRegex(@"\s*[\(\[][^\)\]]*[\)\]]")]
     private static partial Regex TitleExtrasRegex();
 
-    private const string VideoSuffixPattern = @"\s*\|\s*(?:Official|OFFICIAL|MV|mv|Music Video|Visualizer|Lyric Video|Audio|Track\s*No\.\d+).*";
+    [GeneratedRegex(@"\s*-\s*Topic\s*$", RegexOptions.IgnoreCase)]
+    private static partial Regex TopicSuffixRegex();
+
+    [GeneratedRegex(@"\s+VEVO\s*$", RegexOptions.IgnoreCase)]
+    private static partial Regex VevoSuffixRegex();
+
+    private const string VideoSuffixPattern = @"\s*[\-\|]\s*(?:Official|OFFICIAL|MV|mv|Music Video|Visualizer|Lyric Video|Audio Video|Audio|Track\s*No\.\d+).*";
     private const string RecordingSuffixPattern = @"\s*-\s*(?:Remaster(?:ed)?|Live|Acoustic|Radio Edit|Bonus Track|Single Version|Instrumental|Deluxe|Mono|Stereo).*";
 
     private static readonly HttpClient _lrclibHttp = new(NetworkPrivacy.Handler(NetworkFeature.Lyrics))
@@ -169,6 +175,14 @@ internal sealed partial class LyricsService : IDisposable
         foreach (var (candTrack, candArtist) in candidates)
         {
             token.ThrowIfCancellationRequested();
+            string query = string.IsNullOrWhiteSpace(candArtist) ? candTrack : $"{candTrack} {candArtist}";
+            var queryResult = await TryQuerySearchAsync(query, candTrack, key.DurationSeconds, token).ConfigureAwait(false);
+            if (queryResult is { Count: > 0 }) return new LyricsResult(queryResult, "LRCLIB");
+        }
+
+        foreach (var (candTrack, candArtist) in candidates)
+        {
+            token.ThrowIfCancellationRequested();
             var aggregated = await TryLrcMuxAsync(candTrack, candArtist, key.DurationSeconds, token).ConfigureAwait(false);
             if (aggregated != null) return aggregated;
         }
@@ -305,6 +319,36 @@ internal sealed partial class LyricsService : IDisposable
         var lines = ExtractSyncedLines(best);
         if (lines is { Count: > 0 })
             RuntimeLog.Log(LogTag, $"Got {lines.Count} synced lines (search, Δ{bestDelta}s) for '{trackName}'");
+        return lines;
+    }
+
+    private async Task<List<LyricLine>?> TryQuerySearchAsync(string query, string targetTrack, int durationSeconds, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return null;
+
+        string url = $"/api/search?q={Uri.EscapeDataString(query)}";
+
+        RuntimeLog.Log(LogTag, $"Fetching (query search): {query}");
+
+        using var response = await _lrclibClient.GetAsync(url, token).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            RuntimeLog.Log(LogTag, $"Query search HTTP {(int)response.StatusCode} for '{query}'");
+            return null;
+        }
+
+        using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: token).ConfigureAwait(false);
+        if (doc.RootElement.ValueKind != JsonValueKind.Array)
+            return null;
+
+        string targetTrackNorm = NormalizeForMatching(targetTrack);
+        var (best, bestDelta, found) = FindBestCandidate(doc.RootElement, targetTrackNorm, durationSeconds);
+        if (!found) return null;
+
+        var lines = ExtractSyncedLines(best);
+        if (lines is { Count: > 0 })
+            RuntimeLog.Log(LogTag, $"Got {lines.Count} synced lines (query search, Δ{bestDelta}s) for '{query}'");
         return lines;
     }
 
@@ -563,8 +607,10 @@ internal sealed partial class LyricsService : IDisposable
     {
         if (string.IsNullOrWhiteSpace(artist)) return artist;
 
+        string s = TopicSuffixRegex().Replace(artist, "");
+        s = VevoSuffixRegex().Replace(s, "");
+
         // Use only the primary artist (before "feat.", "&", "," , "x").
-        string s = artist;
         foreach (var sep in ArtistSeparators)
         {
             int idx = s.IndexOf(sep, StringComparison.OrdinalIgnoreCase);
