@@ -16,14 +16,6 @@ public partial class MainWindow
 {
     private HardwareMicMonitorService? _micMonitorService;
     private SystemNotificationListenerService? _notificationListenerService;
-
-    private int _micAlertToken;
-    private bool _isMicAlertActive;
-    private UiScheduledTimer? _micAlertDismissTimer;
-
-    private int _appToastToken;
-    private bool _isAppToastActive;
-    private UiScheduledTimer? _appToastDismissTimer;
     private AppNotificationInfo? _currentAppToast;
 
     private void InitializeSystemAlerts()
@@ -64,7 +56,8 @@ public partial class MainWindow
     private void UpdateMicMutedBadge(bool isMuted)
     {
         if (MicMutedBadge == null) return;
-        MicMutedBadge.Visibility = isMuted ? Visibility.Visible : Visibility.Collapsed;
+        bool showBadge = isMuted && _settings.EnableMicMuteAlert;
+        MicMutedBadge.Visibility = showBadge ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void MicMutedBadge_Click(object sender, MouseButtonEventArgs e)
@@ -74,83 +67,35 @@ public partial class MainWindow
 
     private void ShowMicAlert(bool isMuted)
     {
-        if (MicAlertNotification == null) return;
         if (_isExpanded || _isAnimating) return;
+        if (!_settings.EnableMicMuteAlert) return;
 
-        if (!TryAcquireCompactSlot(CompactPillSlot.Mic, out int token))
+        if (CompactActionIconText != null)
         {
-            return;
+            CompactActionIconText.Text = isMuted ? "🎙️" : "🟢";
+            CompactActionIconText.Foreground = Brushes.White;
         }
-        _micAlertToken = token;
-        _isMicAlertActive = true;
-
-        SuppressPrivacyDot();
-
-        MicAlertIcon.Text = isMuted ? "🎙️" : "🟢";
-        MicAlertText.Text = isMuted ? "Microphone Muted" : "Microphone Active";
-        MicAlertText.Foreground = isMuted
-            ? new SolidColorBrush(Color.FromRgb(0xFF, 0x45, 0x3A))
-            : new SolidColorBrush(Color.FromRgb(0x30, 0xD1, 0x58));
-
-        AnimateCompactWidth(_collapsedWidth + 24, _dur350, _easeExpOut6, _micAlertToken);
-
-        MicAlertNotification.Visibility = Visibility.Visible;
-        MicAlertNotification.Opacity = 0;
-        MicAlertNotification.BeginAnimation(OpacityProperty, null);
-        var fadeIn = MakeAnim(0.0, 1.0, _dur200, _easeQuadOut);
-        MicAlertNotification.BeginAnimation(OpacityProperty, fadeIn);
-
-        _micAlertDismissTimer ??= new UiScheduledTimer
+        if (CompactActionText != null)
         {
-            Interval = TimeSpan.FromMilliseconds(2200)
-        };
-        _micAlertDismissTimer.Tick -= OnMicAlertDismissTick;
-        _micAlertDismissTimer.Tick += OnMicAlertDismissTick;
-        _micAlertDismissTimer.Stop();
-        _micAlertDismissTimer.Start();
-    }
+            CompactActionText.Text = isMuted ? "Microphone Muted" : "Microphone Active";
+            CompactActionText.Foreground = isMuted
+                ? new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B))
+                : new SolidColorBrush(Color.FromRgb(0x30, 0xD1, 0x58));
+        }
 
-    private void OnMicAlertDismissTick(object? sender, EventArgs e)
-    {
-        _micAlertDismissTimer?.Stop();
-        DismissMicAlert();
+        SetTransientAction(CompactTransientAction.MicAlert, TimeSpan.FromMilliseconds(1500));
     }
 
     private void DismissMicAlert()
     {
-        if (!_isMicAlertActive || IsCompactSlotStale(_micAlertToken)) return;
-        _isMicAlertActive = false;
-        int token = _micAlertToken;
-        _micAlertToken = 0;
-        _compactPillArbiter.Release(token);
-
-        RestorePrivacyDotVisibility();
-
-        if (MicAlertNotification != null)
-        {
-            MicAlertNotification.BeginAnimation(OpacityProperty, null);
-            var fadeOut = MakeAnim(1.0, 0.0, _dur200, _easeQuadOut);
-            fadeOut.Completed += (_, _) =>
-            {
-                if (!_isMicAlertActive) MicAlertNotification.Visibility = Visibility.Collapsed;
-            };
-            MicAlertNotification.BeginAnimation(OpacityProperty, fadeOut);
-        }
-
-        RestoreCompactPresentationAfterAlert();
+        EvaluateAndRestoreNotchState();
     }
 
     private void CancelMicAlertImmediate()
     {
-        _micAlertDismissTimer?.Stop();
-        _isMicAlertActive = false;
-        _micAlertToken = 0;
-        if (MicAlertNotification != null)
-        {
-            MicAlertNotification.BeginAnimation(OpacityProperty, null);
-            MicAlertNotification.Opacity = 0;
-            MicAlertNotification.Visibility = Visibility.Collapsed;
-        }
+        _transientActionTimer?.Stop();
+        _activeTransientAction = CompactTransientAction.None;
+        EvaluateAndRestoreNotchState();
     }
 
     private void OnSystemNotificationReceived(AppNotificationInfo notif)
@@ -164,82 +109,36 @@ public partial class MainWindow
 
     private void ShowAppToast(AppNotificationInfo notif)
     {
-        if (AppToastNotification == null) return;
         if (_isExpanded || _isAnimating) return;
+        if (!_settings.EnableAppNotifications) return;
 
-        if (!TryAcquireCompactSlot(CompactPillSlot.Notification, out int token))
-        {
-            return;
-        }
-        _appToastToken = token;
-        _isAppToastActive = true;
         _currentAppToast = notif;
-
-        SuppressPrivacyDot();
-
-        AppToastIcon.Text = notif.AppName.Equals("WhatsApp", StringComparison.OrdinalIgnoreCase) ? "💬" : "🎮";
-        AppToastSender.Text = string.IsNullOrWhiteSpace(notif.Title) ? notif.AppName : notif.Title;
-        AppToastMessage.Text = string.IsNullOrWhiteSpace(notif.Message) ? "New message" : notif.Message;
-
-        AnimateCompactWidth(_collapsedWidth + 48, _dur350, _easeExpOut6, _appToastToken);
-
-        AppToastNotification.Visibility = Visibility.Visible;
-        AppToastNotification.Opacity = 0;
-        AppToastNotification.BeginAnimation(OpacityProperty, null);
-        var fadeIn = MakeAnim(0.0, 1.0, _dur200, _easeQuadOut);
-        AppToastNotification.BeginAnimation(OpacityProperty, fadeIn);
-
-        _appToastDismissTimer ??= new UiScheduledTimer
+        if (CompactActionIconText != null)
         {
-            Interval = TimeSpan.FromMilliseconds(4500)
-        };
-        _appToastDismissTimer.Tick -= OnAppToastDismissTick;
-        _appToastDismissTimer.Tick += OnAppToastDismissTick;
-        _appToastDismissTimer.Stop();
-        _appToastDismissTimer.Start();
-    }
+            CompactActionIconText.Text = notif.AppName.Equals("WhatsApp", StringComparison.OrdinalIgnoreCase) ? "💬" : "🎮";
+        }
+        if (CompactToastApp != null)
+        {
+            CompactToastApp.Text = string.IsNullOrWhiteSpace(notif.Title) ? notif.AppName : notif.Title;
+        }
+        if (CompactToastMsg != null)
+        {
+            CompactToastMsg.Text = string.IsNullOrWhiteSpace(notif.Message) ? "New message" : notif.Message;
+        }
 
-    private void OnAppToastDismissTick(object? sender, EventArgs e)
-    {
-        _appToastDismissTimer?.Stop();
-        DismissAppToast();
+        SetTransientAction(CompactTransientAction.Notification, TimeSpan.FromMilliseconds(3000));
     }
 
     private void DismissAppToast()
     {
-        if (!_isAppToastActive || IsCompactSlotStale(_appToastToken)) return;
-        _isAppToastActive = false;
-        int token = _appToastToken;
-        _appToastToken = 0;
-        _compactPillArbiter.Release(token);
-
-        RestorePrivacyDotVisibility();
-
-        if (AppToastNotification != null)
-        {
-            AppToastNotification.BeginAnimation(OpacityProperty, null);
-            var fadeOut = MakeAnim(1.0, 0.0, _dur200, _easeQuadOut);
-            fadeOut.Completed += (_, _) =>
-            {
-                if (!_isAppToastActive) AppToastNotification.Visibility = Visibility.Collapsed;
-            };
-            AppToastNotification.BeginAnimation(OpacityProperty, fadeOut);
-        }
-
-        RestoreCompactPresentationAfterAlert();
+        EvaluateAndRestoreNotchState();
     }
 
     private void CancelAppToastImmediate()
     {
-        _appToastDismissTimer?.Stop();
-        _isAppToastActive = false;
-        _appToastToken = 0;
-        if (AppToastNotification != null)
-        {
-            AppToastNotification.BeginAnimation(OpacityProperty, null);
-            AppToastNotification.Opacity = 0;
-            AppToastNotification.Visibility = Visibility.Collapsed;
-        }
+        _transientActionTimer?.Stop();
+        _activeTransientAction = CompactTransientAction.None;
+        EvaluateAndRestoreNotchState();
     }
 
     private void AppToastNotification_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -263,37 +162,12 @@ public partial class MainWindow
 
     private void RestoreCompactPresentationAfterAlert()
     {
-        if (_isExpanded || _isAnimating) return;
-
-        AnimateCompactWidth(_collapsedWidth, _dur350, _easeExpOut6, 0);
-
-        if (_isMusicCompactMode)
-        {
-            if (!_isClipboardPeekActive)
-            {
-                CompactThumbnailBorder.Visibility = Visibility.Visible;
-                CompactThumbnailBorder.Opacity = 0;
-                CompactThumbnailBorder.BeginAnimation(OpacityProperty, null);
-                var thumbIn = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
-                CompactThumbnailBorder.BeginAnimation(OpacityProperty, thumbIn);
-                ShowMusicVisualizer(duration: _dur100);
-            }
-        }
-        else
-        {
-            CollapsedContent.Visibility = Visibility.Visible;
-            CollapsedContent.Opacity = 0;
-            CollapsedContent.BeginAnimation(OpacityProperty, null);
-            var contentIn = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
-            CollapsedContent.BeginAnimation(OpacityProperty, contentIn);
-        }
+        EvaluateAndRestoreNotchState();
     }
 
     private void DisposeSystemAlerts()
     {
         _micMonitorService?.Dispose();
         _notificationListenerService?.Dispose();
-        _micAlertDismissTimer?.Stop();
-        _appToastDismissTimer?.Stop();
     }
 }

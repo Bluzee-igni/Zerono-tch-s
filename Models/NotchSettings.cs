@@ -125,8 +125,16 @@ public class NotchSettings
 
     public bool EnableDynamicIslandMode { get; set; } = false;
 
-    public bool HideOnExclusiveFullscreen { get; set; } = false;
-    public bool HideOnWindowedFullscreen { get; set; } = false;
+    public bool ShowCompactLyrics { get; set; } = true;
+    public bool AutoHideInFullscreen { get; set; } = true;
+    public bool EnableVolumeOsd { get; set; } = true;
+    public bool EnableMicMuteAlert { get; set; } = true;
+    public bool EnableClipboardToast { get; set; } = true;
+    public bool EnableAppNotifications { get; set; } = true;
+    public string NotchSizePreset { get; set; } = "Default";
+
+    public bool HideOnExclusiveFullscreen { get; set; } = true;
+    public bool HideOnWindowedFullscreen { get; set; } = true;
 
     public bool EnableDebugMode { get; set; } = false;
     public double? DebugWindowX { get; set; }

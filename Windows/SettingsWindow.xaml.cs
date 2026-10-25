@@ -310,6 +310,21 @@ public partial class SettingsWindow : Window
         HelloGreetingCheck.IsChecked = _settings.EnableHelloGreeting;
         HideOnExclusiveFullscreenCheck.IsChecked = _settings.HideOnExclusiveFullscreen;
         HideOnWindowedFullscreenCheck.IsChecked = _settings.HideOnWindowedFullscreen;
+
+        ShowCompactLyricsCheck.IsChecked = _settings.ShowCompactLyrics;
+        AutoHideFullscreenCheck.IsChecked = _settings.AutoHideInFullscreen;
+        EnableVolumeOsdCheck.IsChecked = _settings.EnableVolumeOsd;
+        EnableMicMuteAlertCheck.IsChecked = _settings.EnableMicMuteAlert;
+        EnableClipboardToastCheck.IsChecked = _settings.EnableClipboardToast;
+        EnableAppNotificationsCheck.IsChecked = _settings.EnableAppNotifications;
+        foreach (System.Windows.Controls.ComboBoxItem item in NotchSizePresetCombo.Items)
+        {
+            if (string.Equals(item.Tag as string, _settings.NotchSizePreset, StringComparison.OrdinalIgnoreCase))
+            {
+                NotchSizePresetCombo.SelectedItem = item;
+                break;
+            }
+        }
         IdleAutoHideCheck.IsChecked = _settings.EnableIdleAutoHide;
         IdleAutoHideDelaySlider.Value = Math.Max(2, _settings.IdleAutoHideDelay / 1000.0);
         IdleAutoHideDelaySlider.IsEnabled = _settings.EnableIdleAutoHide;

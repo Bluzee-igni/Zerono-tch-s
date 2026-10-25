@@ -3,15 +3,359 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using VNotch.Controllers;
+using VNotch.Services;
 using static VNotch.Services.AnimationPrimitives;
 
 namespace VNotch;
 
+public enum CompactTransientAction
+{
+    None = 0,
+    Volume,
+    MicAlert,
+    Clipboard,
+    Notification
+}
+
+public enum CompactContentType
+{
+    StandbyClock,
+    MediaLyrics,
+    VolumeOsd,
+    MicAlertOsd,
+    CopiedOsd,
+    ToastNotificationOsd
+}
+
 public partial class MainWindow
 {
+    public const double CompactStandbyWidth = 130.0;
+    public const double CompactStandbyHeight = 32.0;
+    public const double CompactActiveWidth = 360.0;
+    public const double CompactActiveHeight = 36.0;
+
+    private static readonly IEasingFunction _cubicEaseOut = new CubicEase { EasingMode = EasingMode.EaseOut };
+
     private int _compactWidthAnimationVersion = 0;
     private bool _compactPresentationGuardInstalled;
     private bool _enforcingCompactPresentation;
+    private bool _isTransientOsdActive = false;
+    private CompactTransientAction _activeTransientAction = CompactTransientAction.None;
+    private UiScheduledTimer? _transientActionTimer;
+
+    public bool IsTransientOsdActive => _isTransientOsdActive;
+
+    public void SetTransientAction(CompactTransientAction action, TimeSpan duration)
+    {
+        bool wasAlreadyThisAction = _isTransientOsdActive && _activeTransientAction == action;
+        _transientActionTimer?.Stop();
+
+        if (action != CompactTransientAction.None)
+        {
+            _isTransientOsdActive = true;
+            _activeTransientAction = action;
+            _transientActionTimer = new UiScheduledTimer { Interval = duration };
+            _transientActionTimer.Tick += (s, e) =>
+            {
+                _transientActionTimer?.Stop();
+                _isTransientOsdActive = false;
+                _activeTransientAction = CompactTransientAction.None;
+                EvaluateAndRestoreNotchState();
+            };
+            _transientActionTimer.Start();
+        }
+        else
+        {
+            _isTransientOsdActive = false;
+            _activeTransientAction = CompactTransientAction.None;
+        }
+
+        if (!wasAlreadyThisAction)
+        {
+            ApplyTransientVisuals(action);
+        }
+    }
+
+    private void ApplyTransientVisuals(CompactTransientAction action)
+    {
+        switch (action)
+        {
+            case CompactTransientAction.Volume:
+                SetCompactModeContent(CompactContentType.VolumeOsd);
+                TransitionToCompactSize(280, CompactActiveHeight);
+                break;
+            case CompactTransientAction.MicAlert:
+                SetCompactModeContent(CompactContentType.MicAlertOsd);
+                double micTextWidth = MeasureCompactTextWidth(CompactActionText?.Text ?? "Microphone Muted") + 90;
+                double targetMicWidth = Math.Clamp(micTextWidth, 220, 300);
+                TransitionToCompactSize(targetMicWidth, CompactActiveHeight);
+                break;
+            case CompactTransientAction.Clipboard:
+                SetCompactModeContent(CompactContentType.CopiedOsd);
+                double snippetW = CompactCopiedSnippet != null && !string.IsNullOrEmpty(CompactCopiedSnippet.Text)
+                    ? MeasureCompactTextWidth(CompactCopiedSnippet.Text)
+                    : 0;
+                double targetCopiedWidth = Math.Clamp(MeasureCompactTextWidth("Copied") + snippetW + 110, 200, 340);
+                TransitionToCompactSize(targetCopiedWidth, CompactActiveHeight);
+                break;
+            case CompactTransientAction.Notification:
+                SetCompactModeContent(CompactContentType.ToastNotificationOsd);
+                double toastW = Math.Clamp(MeasureCompactTextWidth(CompactToastMsg?.Text ?? "") + 130, 260, 360);
+                TransitionToCompactSize(toastW, CompactActiveHeight);
+                break;
+            case CompactTransientAction.None:
+            default:
+                EvaluateAndRestoreNotchState();
+                break;
+        }
+    }
+
+    public void SetCompactModeContent(CompactContentType type)
+    {
+        if (_isExpanded) return;
+
+        bool isMicMuted = _micMonitorService?.IsMuted ?? false;
+
+        if (type == CompactContentType.StandbyClock)
+        {
+            if (MusicCompactContent != null)
+            {
+                MusicCompactContent.Visibility = Visibility.Collapsed;
+                MusicCompactContent.Opacity = 0;
+            }
+
+            if (CollapsedContent != null)
+            {
+                CollapsedContent.Visibility = Visibility.Visible;
+                CollapsedContent.Opacity = 1;
+            }
+
+            if (StandbyClockText != null)
+            {
+                StandbyClockText.Text = DateTime.Now.ToString("HH:mm");
+            }
+
+            if (StandbyMicBadge != null)
+            {
+                StandbyMicBadge.Visibility = isMicMuted ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            SuppressPrivacyDot();
+            TransitionToCompactSize(_collapsedWidth, _collapsedHeight);
+            return;
+        }
+
+        if (CollapsedContent != null)
+        {
+            CollapsedContent.Visibility = Visibility.Collapsed;
+            CollapsedContent.Opacity = 0;
+        }
+
+        if (MusicCompactContent != null)
+        {
+            MusicCompactContent.Visibility = Visibility.Visible;
+            MusicCompactContent.Opacity = 1;
+        }
+
+        if (MicMutedBadge != null)
+        {
+            MicMutedBadge.Visibility = isMicMuted ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        if (type == CompactContentType.MediaLyrics)
+        {
+            if (CompactActionIconBorder != null) CompactActionIconBorder.Visibility = Visibility.Collapsed;
+            if (CompactVolumeOsd != null) CompactVolumeOsd.Visibility = Visibility.Collapsed;
+            if (CompactActionText != null) CompactActionText.Visibility = Visibility.Collapsed;
+            if (CompactCopiedHost != null) CompactCopiedHost.Visibility = Visibility.Collapsed;
+            if (ClipboardCopiedText != null) ClipboardCopiedText.Visibility = Visibility.Collapsed;
+            if (ClipboardCheckIcon != null) ClipboardCheckIcon.Visibility = Visibility.Collapsed;
+            if (CompactToastHost != null) CompactToastHost.Visibility = Visibility.Collapsed;
+
+            if (CompactThumbnailBorder != null)
+            {
+                CompactThumbnailBorder.Visibility = Visibility.Visible;
+                CompactThumbnailBorder.Opacity = 1;
+                if (_currentMediaInfo?.Thumbnail != null)
+                {
+                    CompactThumbnail.Source = _currentMediaInfo.Thumbnail;
+                }
+            }
+
+            if (CompactLyricsHost != null)
+            {
+                CompactLyricsHost.Visibility = Visibility.Visible;
+                CompactLyricsHost.Opacity = 1;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_lastCompactLyricLine))
+            {
+                CompactLyricText.Text = _lastCompactLyricLine;
+                CompactLyricText.Opacity = 1;
+                CompactTrackFallbackText.Opacity = 0;
+            }
+            else
+            {
+                CompactLyricText.Opacity = 0;
+                string fallback = "";
+                if (_currentMediaInfo != null && !string.IsNullOrWhiteSpace(_currentMediaInfo.CurrentTrack))
+                {
+                    fallback = string.IsNullOrWhiteSpace(_currentMediaInfo.CurrentArtist)
+                        ? _currentMediaInfo.CurrentTrack
+                        : $"{_currentMediaInfo.CurrentTrack} • {_currentMediaInfo.CurrentArtist}";
+                }
+                CompactTrackFallbackText.Text = fallback;
+                CompactTrackFallbackText.Opacity = 1;
+            }
+
+            if (MusicViz != null)
+            {
+                MusicViz.Visibility = Visibility.Visible;
+                MusicViz.Opacity = 1;
+                MusicViz.IsPlaying = _currentMediaInfo?.IsPlaying ?? false;
+                MusicViz.SetCopiedFeedback(false);
+                if (_currentMediaInfo?.IsPlaying == true)
+                {
+                    ShowMusicVisualizer(duration: _dur100);
+                }
+            }
+
+            double targetActiveW = _collapsedWidth;
+            if (!string.IsNullOrWhiteSpace(_lastCompactLyricLine))
+            {
+                double textW = MeasureCompactTextWidth(_lastCompactLyricLine) + 90;
+                targetActiveW = Math.Max(_collapsedWidth, Math.Min(440, textW));
+            }
+            TransitionToCompactSize(targetActiveW, _collapsedHeight);
+            return;
+        }
+
+        SuppressPrivacyDot();
+        if (CompactThumbnailBorder != null) CompactThumbnailBorder.Visibility = Visibility.Collapsed;
+        if (CompactLyricsHost != null) CompactLyricsHost.Visibility = Visibility.Collapsed;
+        if (CompactLyricText != null) CompactLyricText.Opacity = 0;
+        if (CompactTrackFallbackText != null) CompactTrackFallbackText.Opacity = 0;
+        if (MusicViz != null) MusicViz.Visibility = Visibility.Collapsed;
+
+        if (CompactActionIconBorder != null) CompactActionIconBorder.Visibility = Visibility.Collapsed;
+        if (CompactVolumeOsd != null) CompactVolumeOsd.Visibility = Visibility.Collapsed;
+        if (CompactActionText != null) CompactActionText.Visibility = Visibility.Collapsed;
+        if (CompactCopiedHost != null) CompactCopiedHost.Visibility = Visibility.Collapsed;
+        if (ClipboardCopiedText != null) ClipboardCopiedText.Visibility = Visibility.Collapsed;
+        if (ClipboardCheckIcon != null) ClipboardCheckIcon.Visibility = Visibility.Collapsed;
+        if (CompactToastHost != null) CompactToastHost.Visibility = Visibility.Collapsed;
+
+        switch (type)
+        {
+            case CompactContentType.VolumeOsd:
+                if (CompactActionIconBorder != null) CompactActionIconBorder.Visibility = Visibility.Visible;
+                if (CompactVolumeOsd != null) CompactVolumeOsd.Visibility = Visibility.Visible;
+                break;
+
+            case CompactContentType.MicAlertOsd:
+                if (CompactActionIconBorder != null) CompactActionIconBorder.Visibility = Visibility.Visible;
+                if (CompactActionText != null) CompactActionText.Visibility = Visibility.Visible;
+                break;
+
+            case CompactContentType.CopiedOsd:
+                if (CompactCopiedHost != null) CompactCopiedHost.Visibility = Visibility.Visible;
+                break;
+
+            case CompactContentType.ToastNotificationOsd:
+                if (CompactActionIconBorder != null) CompactActionIconBorder.Visibility = Visibility.Visible;
+                if (CompactToastHost != null) CompactToastHost.Visibility = Visibility.Visible;
+                break;
+        }
+
+        TransitionToCompactSize(CompactActiveWidth, CompactActiveHeight);
+    }
+
+    public void TransitionToCompactSize(double targetWidth, double targetHeight)
+    {
+        if (_isExpanded || NotchBorder == null) return;
+
+        double currentW = NotchBorder.ActualWidth > 0 ? NotchBorder.ActualWidth : NotchBorder.Width;
+        if (double.IsNaN(currentW) || currentW <= 0) currentW = targetWidth;
+
+        double currentH = NotchBorder.ActualHeight > 0 ? NotchBorder.ActualHeight : NotchBorder.Height;
+        if (double.IsNaN(currentH) || currentH <= 0) currentH = targetHeight;
+
+        if (Math.Abs(currentW - targetWidth) > 0.5)
+        {
+            var widthAnim = new DoubleAnimation
+            {
+                From = currentW,
+                To = targetWidth,
+                Duration = TimeSpan.FromMilliseconds(300),
+                EasingFunction = _cubicEaseOut
+            };
+            Timeline.SetDesiredFrameRate(widthAnim, AnimationConfig.TargetFps);
+            widthAnim.Completed += (_, _) =>
+            {
+                NotchBorder.Width = targetWidth;
+                NotchBorder.BeginAnimation(WidthProperty, null);
+            };
+            NotchBorder.BeginAnimation(WidthProperty, widthAnim, HandoffBehavior.SnapshotAndReplace);
+        }
+        else
+        {
+            NotchBorder.Width = targetWidth;
+        }
+
+        if (Math.Abs(currentH - targetHeight) > 0.5)
+        {
+            var heightAnim = new DoubleAnimation
+            {
+                From = currentH,
+                To = targetHeight,
+                Duration = TimeSpan.FromMilliseconds(300),
+                EasingFunction = _cubicEaseOut
+            };
+            Timeline.SetDesiredFrameRate(heightAnim, AnimationConfig.TargetFps);
+            heightAnim.Completed += (_, _) =>
+            {
+                NotchBorder.Height = targetHeight;
+                NotchBorder.BeginAnimation(HeightProperty, null);
+            };
+            NotchBorder.BeginAnimation(HeightProperty, heightAnim, HandoffBehavior.SnapshotAndReplace);
+        }
+        else
+        {
+            NotchBorder.Height = targetHeight;
+        }
+    }
+
+    public void EvaluateAndRestoreNotchState()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(EvaluateAndRestoreNotchState);
+            return;
+        }
+
+        if (_cleanedUp || _isExpanded || _isAnimating) return;
+
+        if (_isTransientOsdActive && _activeTransientAction != CompactTransientAction.None)
+        {
+            ApplyTransientVisuals(_activeTransientAction);
+            return;
+        }
+
+        _isTransientOsdActive = false;
+        _activeTransientAction = CompactTransientAction.None;
+
+        bool hasActiveMedia = _isMusicCompactMode && _currentMediaInfo != null &&
+            (_currentMediaInfo.IsPlaying || !string.IsNullOrWhiteSpace(_currentMediaInfo.CurrentTrack));
+
+        if (hasActiveMedia)
+        {
+            SetCompactModeContent(CompactContentType.MediaLyrics);
+        }
+        else
+        {
+            SetCompactModeContent(CompactContentType.StandbyClock);
+        }
+    }
 
     private void EnsureCompactPresentationGuard()
     {
@@ -20,8 +364,7 @@ public partial class MainWindow
         foreach (var element in new UIElement[] { MusicViz, CompactThumbnailBorder,
             MusicCompactContent, CollapsedContent,
             ClipboardCheckIcon, ClipboardCopiedText, VolumeIndicatorContainer,
-            BluetoothNotification, BluetoothDisconnectNotification, ChargingNotification,
-            MicAlertNotification, AppToastNotification })
+            BluetoothNotification, BluetoothDisconnectNotification, ChargingNotification })
             element.IsVisibleChanged += (_, _) => EnforceCompactPresentationOwner();
     }
 
@@ -39,14 +382,11 @@ public partial class MainWindow
         try
         {
             var owner = _compactPillArbiter.ActiveSlot;
-            if (owner is CompactPillSlot.Bluetooth or CompactPillSlot.Charging or CompactPillSlot.Greeting or CompactPillSlot.Volume or CompactPillSlot.Mic or CompactPillSlot.Notification)
+            if (owner is CompactPillSlot.Bluetooth or CompactPillSlot.Charging or CompactPillSlot.Greeting)
             {
                 HideCompactSurface(MusicCompactContent);
                 HideCompactSurface(CollapsedContent);
-            }
-            if (owner != CompactPillSlot.None)
-            {
-                if (owner != CompactPillSlot.Clipboard) HideCompactSurface(MusicViz);
+                HideCompactSurface(MusicViz);
                 HideCompactSurface(CompactThumbnailBorder);
             }
             if (owner != CompactPillSlot.Clipboard)
@@ -54,8 +394,7 @@ public partial class MainWindow
                 HideCompactSurface(ClipboardCheckIcon);
                 HideCompactSurface(ClipboardCopiedText);
             }
-            if (owner != CompactPillSlot.Volume &&
-                !(_isVolumeIndicatorExiting && owner == CompactPillSlot.None))
+            if (owner != CompactPillSlot.Volume)
                 HideCompactSurface(VolumeIndicatorContainer);
             if (owner != CompactPillSlot.Bluetooth)
             {
@@ -63,22 +402,13 @@ public partial class MainWindow
                 HideCompactSurface(BluetoothDisconnectNotification);
             }
             if (owner != CompactPillSlot.Charging) HideCompactSurface(ChargingNotification);
-            if (owner != CompactPillSlot.Mic) HideCompactSurface(MicAlertNotification);
-            if (owner != CompactPillSlot.Notification) HideCompactSurface(AppToastNotification);
         }
         finally { _enforcingCompactPresentation = false; }
     }
 
     private void RestoreCompactMediaPresentation()
     {
-        if (_isExpanded || _isAnimating || !_isMusicCompactMode ||
-            !_compactPillArbiter.CanRestoreMedia(_compactPillArbiter.Revision)) return;
-        EnforceCompactPresentationOwner();
-        AnimateCompactWidth(_collapsedWidth, _dur350, _easeExpOut6, 0);
-        CompactThumbnailBorder.BeginAnimation(OpacityProperty, null);
-        CompactThumbnailBorder.Opacity = 1;
-        CompactThumbnailBorder.Visibility = Visibility.Visible;
-        ShowMusicVisualizer();
+        EvaluateAndRestoreNotchState();
     }
 
     private bool TryAcquireCompactSlot(CompactPillSlot slot, out int token)
@@ -150,23 +480,19 @@ public partial class MainWindow
             Duration = duration,
             EasingFunction = ease
         };
-        Timeline.SetDesiredFrameRate(anim, VNotch.Services.AnimationConfig.TargetFps);
+        Timeline.SetDesiredFrameRate(anim, AnimationConfig.TargetFps);
 
         anim.Completed += (_, _) =>
         {
             if (version != _compactWidthAnimationVersion) return;
             if (token == 0 && !_compactPillArbiter.CanRestoreMedia(revision)) return;
 
-            // Allow dismiss animations to finish post token release, but prevent
-            // expansions from committing if preempted by another notification.
             bool returningToRest = Math.Abs(targetWidth - _collapsedWidth) < 0.5;
             bool canCommitTarget = token == 0
                 || _compactPillArbiter.IsTokenCurrent(token)
                 || (returningToRest && _compactPillArbiter.CanRestoreMedia(revision + 1));
             double finalWidth = canCommitTarget ? targetWidth : previousBaseWidth;
 
-            // Set the base while HoldEnd still owns the rendered value, then
-            // remove the clock. Clearing first exposes the old base for a frame.
             NotchBorder.Width = finalWidth;
             NotchBorder.BeginAnimation(WidthProperty, null);
         };

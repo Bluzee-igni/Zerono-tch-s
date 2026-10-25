@@ -1,0 +1,212 @@
+# V-Notch Architecture & Bugfix Documentation
+
+Dokumentasi ini mencatat secara rinci riwayat bug kritis, akar penyebab (*root cause*), dan arsitektur solusi yang telah diterapkan pada repositori **V-Notch (Zerono-tch-s)**. Dokumen ini wajib dibaca sebelum melakukan perubahan kode di masa mendatang guna mencegah terjadinya regresi (*regression bugs*).
+
+---
+
+## 1. Startup Crash Fix (Delegate Type Mismatch & Cascading Teardown)
+- **Gejala:** Aplikasi langsung force close saat startup dengan pop-up error:
+  `System.Windows.Markup.XamlParseException: Failed to create a 'Click' from the text 'MicMutedBadge_Click'`.
+  Diikuti oleh crash kedua: `System.NullReferenceException at MainWindow.PerformCleanup()`.
+- **Akar Masalah (Root Cause):**
+  1. Kontrol kustom `ActionBorder` di `Controls/ActionBorder.cs` mendefinisikan event `Click` bertipe `MouseButtonEventHandler` (`MouseButtonEventArgs`), bukan standard WPF button `RoutedEventHandler` (`RoutedEventArgs`).
+  2. Di code-behind, method handler ditulis dengan signature `(object sender, RoutedEventArgs e)`, sehingga WPF XamlReader gagal mengikat (*bind*) delegasi dan melempar `ArgumentException`.
+  3. Kegagalan konstruktor `InitializeComponent()` menghentikan instansiasi objek sebelum field service (`_moduleHost`, `_notchManager`, dll.) terisi. Ketika WPF memanggil `OnClosed` -> `PerformCleanup()`, pemanggilan tanpa null-check (`_moduleHost.StopAll()`) memicu `NullReferenceException`.
+- **Solusi Kode:**
+  - Ubah signature event handler menjadi `(object sender, MouseButtonEventArgs e)`.
+  - Pasang null-conditional operator (`?.`) pada seluruh pembersihan resource di `PerformCleanup()`.
+  - File terkait: `Windows/MainWindow.SystemAlerts.cs`, `Windows/MainWindow.Controls.cs`, `Windows/MainWindow.xaml.cs`.
+
+---
+
+## 2. Sistem 2 Ukuran Tetap: "Smart Standby Mode" vs "Fixed Active Mode"
+- **Gejala:** Lebar Compact Notch berubah-ubah secara liar dan melompat-lompat mengikuti panjang baris lirik lagu atau teks OSD, menutupi tab browser di atas layar.
+- **Arsitektur Solusi:**
+  Mengganti kalkulasi lebar dinamis dengan **2 ukuran tetap** yang bertransisi halus via `DoubleAnimation` (`CubicEase` EaseOut, `300ms`):
+  1. **Mode Standby / Idle (`130x32 px`):**
+     - Aktif saat tidak ada media yang berputar dan tidak ada OSD aksi yang aktif.
+     - Menampilkan **Jam Digital (`HH:mm`)** dengan font rapi di tengah (`StandbyClockText`), serta menampilkan badge kecil Mic-Off merah (`StandbyMicBadge`) jika mic sedang di-mute.
+  2. **Mode Active (`360x36 px`):**
+     - Aktif saat ada lagu/video berputar ATAU saat ada aksi sementara (Volume, Mic Alert, Copied, Toast Chat).
+     - Ukuran notch **terkunci konsisten pada 360x36 px** tanpa resizing liar. Pergantian antar-konten di dalamnya berjalan mulus menggunakan animasi fade.
+  - File terkait: `Windows/MainWindow.CompactPill.cs`, `Windows/MainWindow.AnimationHelpers.cs`, `Windows/MainWindow.xaml`.
+
+---
+
+## 3. Strict Mutual Exclusion & Timer Lock (`_isTransientOsdActive`)
+- **Gejala:** Teks `"Copied"`, `"Microphone Muted"`, atau Bar Volume bertumpuk tepat di atas kalimat lirik lagu yang sedang berjalan.
+- **Akar Masalah:**
+  Timer lirik (`UpdateLyricsDisplay` / `LyricsTimer_Tick`) terus mengirim pembaruan teks lirik setiap 100ms dan menimpa tampilan OSD yang sedang aktif.
+- **Solusi Kode:**
+  1. **State Lock:** Memperkenalkan flag `_isTransientOsdActive = true` selama OSD sementara tampil (1.5–2 detik).
+  2. **Timer Guard:** Pada awal `UpdateCompactLyricsDisplay` dan `UpdateLyricsDisplay`, tambahkan pengecekan:
+     ```csharp
+     if (_isTransientOsdActive) return;
+     ```
+  3. **Centralized Content Switcher (`SetCompactModeContent`):**
+     Satu method terpusat yang mengatur visibilitas konten compact secara mutlak:
+     - `VolumeOsd`: Hanya menampilkan ikon speaker dan volume slider + persentase. Menyembunyikan seluruh elemen lirik, thumbnail, waveform, dan OSD lain.
+     - `MicAlertOsd`: Hanya menampilkan ikon mic dan teks alert status.
+     - `CopiedOsd`: Hanya menampilkan teks "Copied" dan ikon checkmark.
+     - `MediaLyrics`: Hanya menampilkan cover art, teks lirik/judul, waveform, dan badge mute (jika mic muted).
+  - File terkait: `Windows/MainWindow.CompactPill.cs`, `Windows/MainWindow.Lyrics.cs`.
+
+---
+
+## 4. Layout Grid Anti-Tabrak (Strict Columns Layout)
+- **Gejala:** Huruf terakhir kalimat lirik lagu menabrak titik oranye atau badge mute mic di sebelah kanan.
+- **Solusi Kode:**
+  Menggunakan layout Grid 4 kolom pada `MusicCompactContent`:
+  - `Column 0 (Auto)`: Thumbnail Album (`26x26`) atau Action Icon (`Margin="0,0,10,0"`).
+  - `Column 1 (*)`: Area teks utama dengan `ClipToBounds="True"`, `Margin="0,0,12,0"`, dan `TextTrimming="CharacterEllipsis"`.
+  - `Column 2 (Auto)`: Slot status indicator untuk badge mute mic (`20x20`, `Margin="0,0,8,0"`).
+  - `Column 3 (Auto)`: Waveform visualizer audio atau checkmark feedback.
+  - File terkait: `Windows/MainWindow.xaml`.
+
+---
+
+## 5. Pemisahan Logika Mic Mute (Alert 1.5 Detik vs Badge Permanen)
+- **Gejala:** Saat mic di-mute, notch stuck terkunci di mode mute dan tidak mau kembali menampilkan lirik lagu.
+- **Solusi Kode:**
+  1. **Alert Sementara (1.5 detik):** Ditangani oleh sistem Prioritas 1 OSD (`CompactTransientAction.MicAlert`). Kolom 1 menampilkan teks `"Microphone Muted"` (`#FF6B6B`) atau `"Microphone Active"` (`#30D158`), lalu auto-dismiss setelah 1.5 detik.
+  2. **Badge Permanen:** Ditempatkan di Kolom 2 (`MicMutedBadge`). Ikon 🔇 merah `20x20` menyala selama hardware mic masih mute tanpa mengganggu lirik atau thumbnail lagu di kolom lainnya.
+  3. **PrivacyDot Suppression:** Ketika mic di-mute, titik oranye `PrivacyDot` otomatis disembunyikan (`ShouldSuppressPrivacyDot`) agar tidak bertumpuk di atas badge merah.
+  - File terkait: `Windows/MainWindow.SystemAlerts.cs`, `Windows/MainWindow.PrivacyIndicators.cs`.
+
+---
+
+## 6. Zero-Click Auto-Resume & Stale Thumbnail Fix
+- **Gejala:**
+  1. Setelah OSD volume/copied/mute selesai, notch menjadi hitam kosong dan membutuhkan klik manual untuk memunculkan lirik kembali.
+  2. Saat berpindah dari lagu Spotify ke video YouTube (contoh: video berita/game), thumbnail cover album sebelumnya masih nyangkut.
+- **Solusi Kode:**
+  1. **Auto-Resume:** Method `EvaluateAndRestoreNotchState()` dipanggil secara otomatis saat timer OSD selesai, mengevaluasi `_currentMediaInfo`, dan langsung memulihkan tampilan lirik / standby clock tanpa perlu interaksi pengguna.
+  2. **Thumbnail Reset:** Pada `MainWindow.Media.cs`, saat `result.IsNewTrack` bernilai `true`:
+     - Jika media baru belum/tidak memiliki thumbnail (`info.Thumbnail == null`), bersihkan gambar lama secara tuntas:
+       ```csharp
+       CompactThumbnail.Source = null;
+       ThumbnailImage.Source = null;
+       ThumbnailImage.Visibility = Visibility.Collapsed;
+       ThumbnailFallback.Visibility = Visibility.Visible;
+       ```
+     - Hindari fallback ke thumbnail lama `?? ThumbnailImage.Source`.
+  - File terkait: `Windows/MainWindow.CompactPill.cs`, `Windows/MainWindow.Media.cs`.
+
+---
+
+## 7. Auto-Hide Saat Fullscreen (YouTube / Game / Video)
+- **Gejala:** Notch tetap melayang di atas layar saat pengguna sedang menonton video YouTube Fullscreen atau bermain game.
+- **Akar Masalah:**
+  Setelan `HideOnExclusiveFullscreen` dan `HideOnWindowedFullscreen` sebelumnya bernilai `false` secara default, dan timer polling dimatikan.
+- **Solusi Kode:**
+  1. Di `Models/NotchSettings.cs`, ubah default nilai menjadi `true`.
+  2. Di `Controllers/FullscreenAutoHideController.cs`, jalankan `_pollTimer.Start()` dan pastikan `ShouldHideForType` mengembalikan `true` saat `FullscreenDetector` mendeteksi jendela foreground menutupi area layar utama.
+  3. Saat fullscreen terdeteksi, notch otomatis meluncur keluar layar (`Top = -slideDistance`, `Opacity = 0`, `IsHitTestVisible = false`). Begitu pengguna menekan `Esc`, notch meluncur kembali secara halus.
+  - File terkait: `Controllers/FullscreenAutoHideController.cs`, `Models/NotchSettings.cs`, `Windows/MainWindow.xaml.cs`.
+
+---
+
+## 8. Pembersihan Expanded View Top-Right & Menu Klik Kanan Asli
+- **Gejala:**
+  1. Ikon roda gigi Settings di pojok kanan atas Expanded View tertimpa langsung oleh tombol silang (`✕`) sehingga tidak bisa diklik.
+  2. Saat notch diklik kanan, hanya muncul kotak hitam kosong dengan 2 garis tanpa tulisan apa pun.
+  3. Durasi total lagu di progress bar Expanded View terpotong menjadi `3:`.
+- **Akar Masalah:**
+  1. `NavIconsPanel` dan `StatusBar` sama-sama memiliki alignment di kanan atas Expanded View. Tambahan tombol silang di `NavIconsPanel` berada di koordinat yang persis menimpa `SettingsButton` di `StatusBar`.
+  2. `ContextMenu` kustom menggunakan `Style="{StaticResource TrayContextMenuStyle}"` tanpa menyertakan `Style="{StaticResource TrayMenuItemStyle}"` dan `<TextBlock Style="{StaticResource TrayMenuItemText}"/>` pada `MenuItem`-nya, sehingga ControlTemplate tidak merender teks item.
+  3. Padding `MediaWidget` yang terlalu besar (`16,14,16,14`) dan margin thumbnail (`14px`) menyempitkan ruang horizontal `ProgressSection`, sehingga `RemainingTimeText` di kolom kanan terpotong.
+- **Solusi Kode:**
+  1. Menghapus tombol silang (`✕`) dan tombol duplikat dari `NavIconsPanel` sehingga pojok kanan atas Expanded View bersih sesuai desain asli `rainaku/V-Notch` (hanya ada `BatterySection` dan `SettingsButton` ⚙).
+  2. Mengembalikan padding `MediaWidget` ke proporsi asli (`12,12,6,4`) dan margin thumbnail ke `8px`, serta menyetel `RemainingTimeText` dengan `HorizontalAlignment="Right"` dan `TextAlignment="Right"` sehingga durasi total lagu (misal `3:45`) tampil utuh.
+  3. Menulis ulang `ContextMenu` pada `NotchWrapper` menggunakan `TrayMenuItemStyle`, `TraySeparatorStyle`, dan `TrayMenuItemText` lengkap dengan ikon vektor bawaan, efek hover `#18FF453A`, dan 4 opsi fungsional:
+     - `⚙ Open Settings`
+     - `🔄 Refresh Notch State`
+     - `👁 Hide Notch (Until Next Hover/Click)`
+     - `🚪 Exit Application`
+  - File terkait: `Windows/MainWindow.xaml`, `Controls/MediaPlaybackView.xaml`, `Windows/MainWindow.Controls.cs`.
+
+---
+
+## 9. Smooth Waveform Decay & High-Contrast Icons
+- **Penyempurnaan:**
+  1. **Waveform Lerp Decay:** Nilai `AlphaPauseRelease` pada `Controls/MusicVisualizer.cs` diubah menjadi `0.85` sehingga saat musik di-pause, batang visualizer turun perlahan dan lembut menuju garis titik-titik datar (`.....`) dalam kurun waktu ~300ms.
+  2. **Icon Contrast:** Teks ikon di dalam `CompactActionIconBorder` diatur eksplisit dengan `Foreground="#FFFFFF"` dan teks alert mute menggunakan `#FF6B6B` agar kontras dan terbaca jelas di atas latar gelap.
+  - File terkait: `Controls/MusicVisualizer.cs`, `Windows/MainWindow.xaml`, `Windows/MainWindow.SystemAlerts.cs`.
+
+---
+
+## 10. WinRT & UI Automation Notification Fallback
+- **Penyempurnaan:**
+  1. Mendukung deteksi WhatsApp Web dari browser (`Chrome`, `Edge`, `Brave`, `Firefox`) dengan memeriksa kecocokan nama, AppId, judul, serta isi pesan toast.
+  2. Menyediakan fallback otomatis menggunakan Windows UI Automation (`Automation.AddAutomationEventHandler`) apabila aplikasi dijalankan sebagai unpackaged Win32 app yang tidak memiliki izin akses WinRT `UserNotificationListener`.
+  - File terkait: `Services/SystemNotificationListenerService.cs`.
+
+---
+
+## 11. Perbaikan Aksesibilitas Tombol & Jendela Settings (Settings Window Activation)
+- **Gejala:** Pengguna mengeluhkan tombol settings tidak bisa dibuka saat notch aktif di layar.
+- **Akar Masalah:**
+  1. Pada `SettingsWindow.Animation.cs`, kalkulasi `ShellTranslate.X/Y` mengambil nilai `Left` dan `Top` yang bernilai `double.NaN` sebelum jendela selesai di-arrange di layar. Nilai `NaN` pada transform menyebabkan elemen `MainShell` menghilang seketika.
+  2. Event `Click` pada `ActionBorder` di status bar terhalang oleh event capture induknya, dan nilai default `Opacity` terinisialisasi `0`.
+- **Solusi Kode:**
+  1. Memasang penjaga `double.IsNaN` pada seluruh kalkulasi koordinat awal `PlayEntranceAnimation` di `SettingsWindow.Animation.cs`.
+  2. Memasang binding `PreviewMouseLeftButtonDown="Settings_Click"` pada tombol settings dan memastikan default `Opacity = 1`.
+  3. Memperkuat method `OpenAppSettings()` dengan blok try/catch, fallback instansiasi fresh `CreateSettingsWindow(false)`, penempatan `CenterScreen`, serta pemanggilan `Activate()` dan `Focus()`.
+  - File terkait: `Windows/SettingsWindow.Animation.cs`, `Windows/MainWindow.xaml`, `Windows/MainWindow.xaml.cs`.
+
+---
+
+## 12. Desain Ulang OSD "Copied" Proporsional (3 Kolom & Dynamic Width 200–340px)
+- **Gejala:** Tampilan OSD "Copied" sebelumnya terasa kosong melompong di dalam kapsul hitam 360px tanpa ada ikon clipboard atau checkmark.
+- **Arsitektur Solusi:**
+  1. **Layout 3 Kolom (`CompactCopiedHost`):**
+     - Kolom Kiri: Badge aksen hijau lembut 24x24 (`#2622C55E` border `#4D22C55E`) dengan ikon checkmark bold (`✓`, `#22C55E`).
+     - Kolom Tengah: Teks **`Copied`** (Bold `#FFFFFF`, 12.5pt) + ` • ` + cuplikan teks clipboard maksimal 25–28 karakter (`#B0B0B0` ellipsis), atau *"Image"* / *"Files"* jika non-teks.
+      - Kolom Kanan: Ikon checkmark hijau status (`Margin="10,0,0,0"`).
+   2. **Lebar Dinamis Proporsional:**
+      - Lebar kapsul dihitung otomatis berdasarkan panjang teks cuplikan: `Math.Clamp(MeasureCompactTextWidth + 110, 200, 340)`.
+      - Kapsul menyempit secara mulus (`DoubleAnimation` CubicEase EaseOut `250ms`) saat "Copied" muncul, dan melebar kembali saat lirik lagu kembali aktif.
+   - File terkait: `Windows/MainWindow.xaml`, `Windows/MainWindow.ClipboardPeek.cs`, `Windows/MainWindow.CompactPill.cs`.
+
+---
+
+## 13. Perbaikan Bug Volume OSD Jitter / "Kedut-Kedut" (Debounce Animation & Fixed Layout)
+- **Gejala:** Saat menaikkan atau menurunkan volume (terutama saat tombol volume keyboard ditahan atau digulir roda mouse), notch bergetar atau melompat-lompat (*jitter / shake*) secara liar.
+- **Akar Masalah:**
+  Setiap event perubahan volume memicu pemanggilan `SetTransientAction(CompactTransientAction.Volume)` yang meluncurkan `DoubleAnimation` baru pada `WidthProperty` dan `HeightProperty` kapsul notch dengan mode `SnapshotAndReplace`. Akibatnya puluhan animasi lebar bertabrakan per detik. Selain itu, lebar angka persentase volume yang berubah (misal dari `9%` ke `10%` atau `100%`) menggeser slider bar di sebelahnya.
+- **Solusi Kode:**
+  1. **Debounce Animation:** Di `MainWindow.CompactPill.cs`, periksa apakah Volume OSD sudah aktif (`wasAlreadyThisAction = _isTransientOsdActive && _activeTransientAction == action`). Jika sudah aktif, **dilarang keras memicu animasi ukuran kapsul baru!** Cukup perbarui posisi fill progress bar (`CompactVolumeFill.Width`) dan angka persentasenya, lalu restart timer dismiss 1.5 detik.
+  2. **Fixed Layout 280px:** Kapsul Volume OSD diatur pada lebar tetap `280px`. TextBlock angka persentase diberikan lebar tetap `Width="42"` dan `TextAlignment="Right"` agar perubahan jumlah digit angka tidak mendorong posisi progress bar.
+  - File terkait: `Windows/MainWindow.CompactPill.cs`, `Windows/MainWindow.Controls.cs`, `Windows/MainWindow.xaml`.
+
+---
+
+## 14. Perbaikan Keterlambatan Metadata & Staged Thumbnail Retry pada Browser SMTC
+- **Gejala:** Ketika lagu baru mulai berputar di YouTube Music atau Spotify Web (misal dari playlist otomatis), judul lagu, lirik, dan cover album di notch terlambat berganti beberapa detik atau masih nyangkut di lagu sebelumnya.
+- **Akar Masalah:**
+  1. Background heartbeat `HeartbeatLoopAsync` sebelumnya berjalan sangat lambat (`3–5 detik`). Selain itu, saat heartbeat berjalan, flag `forceRefresh` bernilai `false` sehingga SMTC tidak me-rescan sesi aktif.
+  2. Browser Chromium (Chrome/Edge/Brave) sering tidak memicu event `MediaPropertiesChanged` saat pergantian lagu otomatis, dan stream `Thumbnail` di SMTC Windows sering terlambat diisi oleh browser pada detik `0:00–0:02`.
+  3. `SubscribeToCurrentSession()` hanya mengambil `sessionManager.GetCurrentSession()` yang sering menunjuk ke tab browser yang sedang pause, bukan tab YouTube Music yang sedang play.
+- **Solusi Kode:**
+  1. **Prioritaskan Sesi Playing:** Di `SubscribeToCurrentSession()`, periksa seluruh sesi di `GetSessions()` dan utamakan sesi dengan `PlaybackStatus == Playing`.
+  2. **Fast Polling 500ms:** Ubah interval heartbeat loop menjadi `500ms` saat sesi aktif dan sertakan `ChangeTypes.Heartbeat` ke dalam `ForceRefreshMask` agar pergantian lagu terdeteksi dalam waktu maksimal 500ms.
+  3. **Staged Thumbnail Retry:** Pada method `TrackNameChangeBookkeeping`, saat `info.CurrentTrack` berubah:
+     - Langsung bersihkan thumbnail lama (`CachedThumbnail = null;`).
+     - Jalankan `TriggerStagedTrackRefresh()` yang memicu refresh bertahap di background pada jeda **`300ms`, `800ms`, dan `1800ms`** untuk membaca ulang stream cover art SMTC yang baru masuk.
+   4. **Instant UI Response:** Di `MainWindow.Media.cs`, panggil `EvaluateAndRestoreNotchState()` di akhir `ApplyMediaUpdate` agar perubahan judul dan cover langsung di-render ke Compact Notch tanpa menunggu hover/klik mouse.
+   - File terkait: `Services/MediaDetectionService.cs`, `Windows/MainWindow.Media.cs`.
+
+---
+
+## 15. Perbaikan Foto Album Asli & Eliminasi Subtitle Mismatch YouTube Music
+- **Gejala:**
+  1. Saat memutar lagu di YouTube Music, foto album yang muncul di notch tidak sesuai dengan cover asli lagu (ditimpa oleh frame video hasil scraping YouTube).
+  2. Subtitle yang muncul tidak cocok dengan lagu yang sedang berputar karena mengambil transkrip ucapan video YouTube acak.
+- **Akar Masalah:**
+  1. `ThumbnailHeuristics.cs` menolak (*reject*) thumbnail SMTC YouTube/Browser dan memicu `FetchYouTubeThumbnailAsync`, yang mengunduh thumbnail frame video 16:9 (`maxresdefault.jpg`) dari kueri pencarian video YouTube publik. Akibatnya cover album asli YouTube Music (persegi 256x256 atau 512x512) tertimpa oleh gambar video yang salah.
+  2. Saat LRCLIB tidak menemukan lirik untuk lagu tertentu, `MainWindow.Lyrics.cs` jatuh ke fallback `FetchSubtitlesForTrack`, yang mengunduh closed-caption transkrip ucapan video YouTube otomatis alih-alih menampilkan lirik lagu asli.
+- **Solusi Kode:**
+  1. **Preserve Native SMTC Album Art:** Di `ThumbnailHeuristics.cs`, jika thumbnail SMTC berformat bujur sangkar (aspect ratio 1.0 $\pm$ 0.1) dan berukuran $\ge 120\text{px}$, tetapkan keputusan sebagai `Accept`. Di `MediaDetectionService.cs`, jika thumbnail SMTC bujur sangkar sudah tersedia, **jangan timpa dengan frame video YouTube eksternal**.
+  2. **Eliminasi Subtitle Mismatch:** Pada `MainWindow.Lyrics.cs`, jika LRCLIB tidak menemukan lirik tersinkronisasi, tampilkan fallback bersih `Judul Lagu • Artis` tanpa mengunduh auto-generated video captions YouTube yang tidak cocok.
+  3. **Tampilan Lirik Multi-Kalimat:** Pada `UpdateCompactLyricsDisplay`, izinkan lebar notch menyesuaikan dinamis hingga 600px mengikuti panjang baris lirik multi-kalimat yang sedang dinyanyikan.
+  - File terkait: `Services/ThumbnailHeuristics.cs`, `Services/MediaDetectionService.cs`, `Windows/MainWindow.Lyrics.cs`.

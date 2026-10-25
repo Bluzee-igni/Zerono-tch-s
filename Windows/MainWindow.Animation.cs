@@ -136,7 +136,7 @@ public partial class MainWindow
 
         if (_settings.EnableDynamicIslandMode)
         {
-            const double compactThumbSize = 22;
+            const double compactThumbSize = 26;
             top = Math.Max(0, (GetCollapsedHeight() - compactThumbSize) / 2.0);
         }
 
@@ -1496,6 +1496,7 @@ public partial class MainWindow
 
         FinalizeCompactModeAfterCollapse(contentToShow, suppressCompactThumbnailMotion);
         FinalizeCompactThumbnailAndVisualizerAfterCollapse(suppressCompactThumbnailMotion);
+        EvaluateAndRestoreNotchState();
 
         if (_settings.StayBehindWindows && _isDesktopEdgePromoted && !IsDesktopNotchInteractionActive())
         {

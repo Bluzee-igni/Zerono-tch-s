@@ -363,6 +363,7 @@ public partial class MainWindow : Window
         _systemMonitorModule = systemMonitorModule;
         InitializeSystemMonitorPresenter();
         InitializeSystemAlerts();
+        InitializeStandbyClock();
 
         _collapsedWidth = GetCollapsedWidth();
         _collapsedHeight = GetCollapsedHeight();
@@ -732,6 +733,8 @@ public partial class MainWindow : Window
         MediaPlayback?.Dispose();
         _lyricsTimer?.Stop();
         _volumeSyncTimer?.Stop();
+        _standbyClockTimer?.Stop();
+        _standbyClockTimer = null;
         _lyricsService?.Dispose();
         DisposeSpotifyCanvasLifecycle();
         DisposeSystemAlerts();
@@ -1454,47 +1457,68 @@ public partial class MainWindow : Window
 
     private void OpenAppSettings(bool showTranslation = false)
     {
-        if (IsGreetingInteractionBlocked) return;
-        if (_activeSettingsWindow is { IsVisible: true } activeSettings)
+        try
         {
-            if (showTranslation) activeSettings.NavigateToTranslation();
-            if (activeSettings.WindowState == WindowState.Minimized)
-                activeSettings.WindowState = WindowState.Normal;
-            activeSettings.Activate();
-            return;
+            if (IsGreetingInteractionBlocked) return;
+            if (_activeSettingsWindow is { IsVisible: true } activeSettings)
+            {
+                if (showTranslation) activeSettings.NavigateToTranslation();
+                if (activeSettings.WindowState == WindowState.Minimized)
+                    activeSettings.WindowState = WindowState.Normal;
+                activeSettings.Activate();
+                activeSettings.Focus();
+                return;
+            }
+
+            SettingsWindow settingsWindow;
+            try
+            {
+                settingsWindow = TakeSettingsWindow();
+            }
+            catch (Exception ex)
+            {
+                RuntimeLog.Warn("SETTINGS", $"TakeSettingsWindow failed, creating fresh: {ex.Message}");
+                settingsWindow = CreateSettingsWindow(false);
+            }
+
+            _activeSettingsWindow = settingsWindow;
+
+            settingsWindow.UpdateDetected += (_, updateInfo) =>
+            {
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                {
+                    SetAvailableUpdate(updateInfo);
+                }));
+            };
+
+            settingsWindow.TranslationPreviewRequested += () => _liveTranslation?.OpenFromClipboard();
+            if (showTranslation) settingsWindow.NavigateToTranslation();
+
+            settingsWindow.SettingsChanged += (_, newSettings) =>
+                OnSettingsWindowSettingsChanged(settingsWindow, newSettings);
+
+            settingsWindow.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_activeSettingsWindow, settingsWindow))
+                {
+                    _activeSettingsWindow = null;
+                }
+                PlayNotchReturnBounce();
+                if (_updateService?.LatestUpdateInfo is { IsNewerVersion: true } update)
+                {
+                    SetAvailableUpdate(update);
+                }
+            };
+
+            settingsWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            settingsWindow.Show();
+            settingsWindow.Activate();
+            settingsWindow.Focus();
         }
-
-        var settingsWindow = TakeSettingsWindow();
-        _activeSettingsWindow = settingsWindow;
-
-        settingsWindow.UpdateDetected += (_, updateInfo) =>
+        catch (Exception ex)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
-            {
-                SetAvailableUpdate(updateInfo);
-            }));
-        };
-
-        settingsWindow.TranslationPreviewRequested += () => _liveTranslation?.OpenFromClipboard();
-        if (showTranslation) settingsWindow.NavigateToTranslation();
-
-        settingsWindow.SettingsChanged += (_, newSettings) =>
-            OnSettingsWindowSettingsChanged(settingsWindow, newSettings);
-
-        settingsWindow.Closed += (_, _) =>
-        {
-            if (ReferenceEquals(_activeSettingsWindow, settingsWindow))
-            {
-                _activeSettingsWindow = null;
-            }
-            PlayNotchReturnBounce();
-            if (_updateService?.LatestUpdateInfo is { IsNewerVersion: true } update)
-            {
-                SetAvailableUpdate(update);
-            }
-        };
-
-        settingsWindow.Show();
+            RuntimeLog.Error("SETTINGS", $"OpenAppSettings error: {ex}");
+        }
     }
 
     private void OnSettingsWindowSettingsChanged(SettingsWindow settingsWindow, NotchSettings newSettings)
@@ -1527,6 +1551,7 @@ public partial class MainWindow : Window
         }
 
         RefreshUpdateCheckIfSettingsChanged(oldSettings, newSettings);
+        EvaluateAndRestoreNotchState();
     }
 
     private static bool HasNotchGeometryChanged(NotchSettings oldSettings, NotchSettings newSettings) =>
@@ -2374,6 +2399,12 @@ public partial class MainWindow : Window
 
     private void QueueHoverExpand()
     {
+        if (NotchContainer != null && (!NotchContainer.IsHitTestVisible || NotchContainer.Opacity < 0.5))
+        {
+            NotchContainer.BeginAnimation(OpacityProperty, null);
+            NotchContainer.Opacity = 1;
+            NotchContainer.IsHitTestVisible = true;
+        }
 
         if (_settings.EnableHoverExpand && !_isExpanded && !_isAnimating)
         {
@@ -2928,6 +2959,32 @@ public partial class MainWindow : Window
         }
 
         return false;
+    }
+
+    private UiScheduledTimer? _standbyClockTimer;
+
+    private void InitializeStandbyClock()
+    {
+        UpdateStandbyClock();
+        _standbyClockTimer = new UiScheduledTimer(System.Windows.Threading.DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _standbyClockTimer.Tick += (_, _) => UpdateStandbyClock();
+        _standbyClockTimer.Start();
+    }
+
+    private void UpdateStandbyClock()
+    {
+        if (StandbyClockText != null)
+        {
+            StandbyClockText.Text = DateTime.Now.ToString("HH:mm");
+        }
+        bool isMuted = _micMonitorService?.IsMuted ?? false;
+        if (StandbyMicBadge != null)
+        {
+            StandbyMicBadge.Visibility = isMuted ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     #endregion

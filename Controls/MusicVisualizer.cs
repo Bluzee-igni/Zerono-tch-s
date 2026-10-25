@@ -75,7 +75,7 @@ namespace VNotch.Controls
 
         private const double AlphaAttack = 0.70;
         private const double AlphaRelease = 0.84;
-        private const double AlphaPauseRelease = 0.985;
+        private const double AlphaPauseRelease = 0.85;
         private const double TauOpacity = 200;
         private const double CaptureRetryIntervalMs = 2500;
         private const double NoAudioPulseAmplitude = 0.05;

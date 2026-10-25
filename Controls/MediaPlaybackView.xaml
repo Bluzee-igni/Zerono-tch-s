@@ -369,6 +369,8 @@ c1.513-0.625,3.253-0.275,4.407,0.885l17.862,17.951c2.088,2.098,2.088,5.488,0,7.5
                                                        Margin="6,2,0,0"
                                                        Text="0:00"
                                                        Style="{StaticResource ProgressTimeText}"
+                                                       HorizontalAlignment="Right"
+                                                       TextAlignment="Right"
                                                        VerticalAlignment="Center"/>
 
                                             <TextBlock x:Name="CurrentTimeText"

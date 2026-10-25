@@ -237,32 +237,13 @@ public partial class MainWindow
             }
             else if (result.IsNewTrack)
             {
-                if (info.Platform is MediaPlatform.SoundCloud or MediaPlatform.Browser)
-                {
-                    // Keep the displayed cover only as the outgoing visual layer while
-                    // the player supplies new artwork. Never copy it into the new MediaInfo.
-                    CancelThumbnailSwitchAnimations();
-                }
-                if (ThumbnailImage.Source == null)
-                {
-                    ThumbnailImage.Visibility = Visibility.Collapsed;
-                    ThumbnailFallback.Visibility = Visibility.Visible;
-                }
-                else
-                {
-                    double transitionBlurRadius = _settings.EnableBlurEffects ? 12 : 0;
-                    ThumbnailOutBlur.BeginAnimation(BlurEffect.RadiusProperty, null);
-                    CompactThumbnailOutBlur.BeginAnimation(BlurEffect.RadiusProperty, null);
-                    ThumbnailOutBlur.Radius = transitionBlurRadius;
-                    CompactThumbnailOutBlur.Radius = _settings.EnableBlurEffects ? 6 : 0;
-
-                    if (CompactThumbnail.Source == null)
-                    {
-                        CompactThumbnail.Source = ThumbnailImage.Source;
-                    }
-                    ThumbnailImage.Visibility = Visibility.Visible;
-                    ThumbnailFallback.Visibility = Visibility.Collapsed;
-                }
+                CancelThumbnailSwitchAnimations();
+                ThumbnailImage.BeginAnimation(OpacityProperty, null);
+                CompactThumbnail.BeginAnimation(OpacityProperty, null);
+                ThumbnailImage.Source = null;
+                CompactThumbnail.Source = null;
+                ThumbnailImage.Visibility = Visibility.Collapsed;
+                ThumbnailFallback.Visibility = Visibility.Visible;
             }
         }
         else
@@ -301,6 +282,11 @@ public partial class MainWindow
 
         MusicViz.TrackId = info?.GetSignature() ?? "";
         MusicViz.IsPlaying = info?.IsPlaying ?? false;
+
+        if (!_isTransientOsdActive)
+        {
+            EvaluateAndRestoreNotchState();
+        }
     }
 #pragma warning restore S3776
 
@@ -524,12 +510,16 @@ public partial class MainWindow
         CompactThumbnailNextBlur.Radius = 0.0;
 
         var overlayTarget = ThumbnailImageNext.Source ?? CompactThumbnailNext.Source;
-        var resolvedThumb = targetThumb ?? overlayTarget
-                            ?? ThumbnailImage.Source ?? CompactThumbnail.Source;
+        var resolvedThumb = targetThumb ?? overlayTarget;
         if (!_showingEmptyThumbnail && resolvedThumb != null)
         {
             ThumbnailImage.Source = resolvedThumb;
             CompactThumbnail.Source = resolvedThumb;
+        }
+        else if (resolvedThumb == null && targetThumb == null && _mediaDisplayController.LastAnimatedThumbnail == null)
+        {
+            ThumbnailImage.Source = null;
+            CompactThumbnail.Source = null;
         }
 
         ThumbnailImageNext.Source = null;

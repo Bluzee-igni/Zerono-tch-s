@@ -167,12 +167,18 @@ internal static class ThumbnailHeuristics
     public static SmtcThumbnailDecision DecideSmtcThumbnail(in SmtcThumbnailInputs x)
     {
         double aspect = x.PixelHeight == 0 ? 0 : (double)x.PixelWidth / x.PixelHeight;
+        bool isSquare = Math.Abs(aspect - 1.0) < 0.10;
+
+        if (isSquare && x.PixelWidth >= 120)
+        {
+            return SmtcThumbnailDecision.Accept;
+        }
+
         if (ShouldRejectSmtcThumbnail(in x, aspect))
         {
             return SmtcThumbnailDecision.Reject;
         }
 
-        bool isSquare = Math.Abs(aspect - 1.0) < 0.05;
         bool shouldPreferVerifiedYouTubeLookup = x.IsYouTubeLikeSource &&
                                                  !x.HasVerifiedYouTubeThumb &&
                                                  !x.TrackChanged;
@@ -187,6 +193,12 @@ internal static class ThumbnailHeuristics
 
     private static bool ShouldRejectSmtcThumbnail(in SmtcThumbnailInputs x, double aspect)
     {
+        bool isSquare = Math.Abs(aspect - 1.0) < 0.10;
+        if (isSquare && x.PixelWidth >= 120)
+        {
+            return false;
+        }
+
         if (x.IsSoundCloudSource &&
             !x.HasVerifiedSoundCloudThumb &&
             !x.LikelySoundCloudArtwork &&
@@ -195,7 +207,7 @@ internal static class ThumbnailHeuristics
             return true;
         }
 
-        if (x.IsYouTubeLikeSource && x.BrowserSessionChanged && x.TrackChanged && !x.HasVerifiedYouTubeThumb)
+        if (x.IsYouTubeLikeSource && x.BrowserSessionChanged && x.TrackChanged && !x.HasVerifiedYouTubeThumb && !isSquare)
         {
             return true;
         }

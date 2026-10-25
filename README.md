@@ -1,72 +1,123 @@
 <p align="center">
-  <img src="Assets/logo.png" width="100" height="100" alt="V-Notch">
+  <img src="Assets/logo.png" width="100" height="100" alt="Zerono-tch-s">
 </p>
 
-<h2 align="center">V-Notch</h2>
+<h1 align="center">Zerono-tch-s</h1>
+<h3 align="center">Enhanced V-Notch Personal Edition</h3>
 
 <p align="center">
-  A desktop status and media companion for Windows
+  A feature-packed, lightweight desktop status and media companion for Windows 10 & 11.<br>
+  An enhanced personal build of the open-source <a href="https://github.com/rainaku/V-Notch"><b>rainaku/V-Notch</b></a> project.
 </p>
 
 <p align="center">
-  <a href="https://github.com/rainaku/V-Notch/releases/latest">
-    <img src="https://img.shields.io/github/v/release/rainaku/V-Notch?style=for-the-badge&color=ffffff&labelColor=eeeeee&logo=github&logoColor=111111" alt="Latest Release">
+  <a href="https://github.com/Bluzee-igni/Zerono-tch-s">
+    <img src="https://img.shields.io/badge/Repository-Bluzee--igni%2FZerono--tch--s-0A84FF?style=for-the-badge&logo=github" alt="Repository">
   </a>
-  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-ffffff?style=for-the-badge&labelColor=eeeeee&logo=windows&logoColor=111111" alt="Windows 10 / 11">
-  <img src="https://img.shields.io/badge/.NET-8.0%20%7C%2010.0-ffffff?style=for-the-badge&labelColor=eeeeee&logo=dotnet&logoColor=111111" alt=".NET 8 / 10">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-ffffff?style=for-the-badge&labelColor=222222&logo=windows&logoColor=ffffff" alt="Windows 10 / 11">
+  <img src="https://img.shields.io/badge/.NET-8.0-ffffff?style=for-the-badge&labelColor=222222&logo=dotnet&logoColor=512BD4" alt=".NET 8.0">
   <a href="LICENSE">
-    <img src="https://img.shields.io/github/license/rainaku/V-Notch?style=for-the-badge&color=ffffff&labelColor=eeeeee" alt="License">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-30D158?style=for-the-badge&labelColor=222222" alt="License">
   </a>
-  <a href="https://github.com/rainaku/V-Notch/stargazers">
-    <img src="https://img.shields.io/github/stars/rainaku/V-Notch?style=for-the-badge&color=ffffff&labelColor=eeeeee&logo=apachespark&logoColor=111111" alt="Stars">
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/rainaku/V-Notch/releases/latest">Download</a> ·
-  <a href="#usage">Usage</a> ·
-  <a href="#installation">Installation</a> ·
-  <a href="#privacy">Privacy</a> ·
-  <a href="https://v-notch.vercel.app">Website</a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/rainaku/V-Notch/releases/latest">
-    <img src="Assets/readme/download-framework.svg" width="240" height="64" alt="Windows · Latest release">
+  <a href="https://github.com/Bluzee-igni/Zerono-tch-s/stargazers">
+    <img src="https://img.shields.io/github/stars/Bluzee-igni/Zerono-tch-s?style=for-the-badge&color=FFD60A&labelColor=222222&logo=apachespark&logoColor=FFD60A" alt="Stars">
   </a>
 </p>
 
 <p align="center">
-  <sub><a href="https://github.com/rainaku/V-Notch/releases">All releases</a></sub>
+  <a href="https://github.com/Bluzee-igni/Zerono-tch-s/releases">Download</a> ·
+  <a href="#fitur-unggulan--enhancements-di-zerono-tch-s">Fitur Baru</a> ·
+  <a href="#sumber-asli--original-upstream-attribution">Sumber Asli (Upstream)</a> ·
+  <a href="#pernyataan-non-komersial--open-source">Lisensi & Non-Komersial</a> ·
+  <a href="#panduan-penggunaan-usage">Cara Pakai</a>
 </p>
 
-<p align="center">
-  V-Notch adds media controls, synced lyrics, system stats, privacy indicators, and a Spotlight launcher to the top of your screen. Use it as a compact pill or expand it into a floating Dynamic Island. It works with MyDockFinder.
-</p>
-
-<p align="center">
-  <b>Free and open source forever.</b>
-</p>
+---
 
 > [!IMPORTANT]
 > ### 📢 Pernyataan Non-Komersial & Open-Source / Non-Commercial & Open-Source Statement
 >
 > 🇮🇩 **Bahasa Indonesia:**
 > 1. **100% Non-Komersial**: Repositori dan proyek ini **TIDAK AKAN PERNAH dikomersialkan atau diperjualbelikan** dalam bentuk apa pun.
-> 2. **Kebutuhan Pribadi & Pembelajaran**: Modifikasi serta pengembangan pada repositori ini dikerjakan murni untuk memenuhi kebutuhan pribadi saya sendiri (sebagai pelajar/siswa IT) dalam menunjang produktivitas harian.
-> 3. **Gratis & Terbuka untuk Semua**: Seluruh source code dan aplikasi ini **sepenuhnya gratis untuk diunduh (free to download)**, digunakan, dan dipelajari oleh siapa saja yang membutuhkan, dengan tetap menghormati dan mematuhi lisensi open-source aslinya: [Apache License 2.0](LICENSE) dari upstream [rainaku/V-Notch](https://github.com/rainaku/V-Notch).
+> 2. **Kebutuhan Pribadi & Pembelajaran**: Modifikasi serta penambahan fitur arsitektur pada repositori ini dikerjakan murni untuk memenuhi kebutuhan pribadi pengembang (**Bluzee-igni** sebagai pelajar/siswa IT) dalam menunjang produktivitas harian.
+> 3. **Sepenuhnya Gratis & Terbuka**: Seluruh source code dan aplikasi ini **100% gratis untuk diunduh (free to download)**, digunakan, dan dipelajari oleh siapa saja yang membutuhkan, dengan tetap menghormati dan mematuhi lisensi open-source aslinya: **[Apache License 2.0](LICENSE)** dari proyek upstream **[rainaku/V-Notch](https://github.com/rainaku/V-Notch)**.
 >
 > ---
 >
 > 🇬🇧 **English:**
-> 1. **100% Non-Commercial**: This repository and project is strictly **NON-COMMERCIAL** and will **NEVER be sold or monetized** in any manner.
-> 2. **Personal & Educational Purpose**: Developments and architectural enhancements in this repository are done purely for personal daily productivity needs as an IT student.
-> 3. **Completely Free to Download & Learn**: The application and entire source code are **100% free to download**, use, and study for anyone who finds it helpful, while fully honoring and adhering to the original open-source license: [Apache License 2.0](LICENSE) from upstream [rainaku/V-Notch](https://github.com/rainaku/V-Notch).
+> 1. **100% Non-Commercial**: This repository and project is strictly **NON-COMMERCIAL** and will **NEVER be sold or monetized** in any form.
+> 2. **Personal & Educational Purpose**: Architectural enhancements and feature implementations in this repository are developed purely for personal daily productivity needs as an IT student.
+> 3. **Completely Free to Download & Study**: The application and entire source code are **100% free to download**, use, and inspect for anyone interested, while fully honoring and adhering to the original open-source license: **[Apache License 2.0](LICENSE)** from upstream **[rainaku/V-Notch](https://github.com/rainaku/V-Notch)**.
 
-<p align="center">
-  V-Notch is an independent project.<br>
-  If you use it regularly, you can <a href="https://www.paypal.me/PhuocLe678"><b>support development via PayPal</b></a>.
-</p>
+---
+
+## 🌟 Sumber Asli / Original Upstream Attribution
+
+Proyek ini dibangun di atas fondasi aplikasi open-source luar biasa karya **[rainaku](https://github.com/rainaku)**:
+- **Repository Asli Upstream:** [https://github.com/rainaku/V-Notch](https://github.com/rainaku/V-Notch)
+- **Website Resmi V-Notch:** [https://v-notch.vercel.app](https://v-notch.vercel.app)
+- **Author Asli:** [rainaku](https://rainaku.id.vn) · [Facebook](https://www.facebook.com/rain.107/)
+- **Dukungan untuk Author Asli:** Jika Anda menyukai V-Notch original, Anda dapat mendukung pembuat aslinya melalui [PayPal rainaku](https://www.paypal.me/PhuocLe678).
+- **Proyek Lain oleh rainaku:** [Vertex](https://github.com/rainaku/Vertex) (Radial file converter) dan [Scroll-V](https://github.com/rainaku/Scroll-V) (Smooth scrolling utility).
+
+---
+
+## 🚀 Fitur Unggulan & Enhancements di Zerono-tch-s
+
+Versi **Zerono-tch-s** menambahkan berbagai peningkatan arsitektur sistem, penyempurnaan ergonomi visual, dan integrasi hardware Windows yang tidak ada di versi standar:
+
+### 1. 🎵 Adaptive Synced Lyrics di Compact Notch (Spotify & YouTube Music)
+- **Lirik Real-Time di Notch Mini:** Menghidupkan area tengah notch kecil dengan lirik tersinkronisasi milidetik menggunakan database LRCLIB.
+- **Dukungan Penuh Multi-Platform:** Tidak hanya Spotify desktop, kini mendukung penuh **YouTube Music PWA**, Google Chrome, Microsoft Edge, Firefox, dan Apple Music.
+- **Smart Regex Sanitizer:** Pembersih otomatis embel-embel judul YouTube (`- Topic`, `VEVO`, `(Official Video)`, `[MV]`, `(Lyric Video)`) sebelum kueri lirik dikirim agar selalu mendapatkan hasil yang akurat.
+- **Adaptive Width & Fade Transition:** Lebar notch beradaptasi mulus mengikuti panjang kalimat lirik dengan transisi fade & slide.
+- **Instrumental & Title Fallback:** Saat intro lagu, instrumental, atau lagu tanpa lirik, notch menyusut lembut kembali ke ukuran standar dan menampilkan teks ringkas `Judul Lagu • Artis`.
+
+### 2. 🔊 Hardware Volume OSD Real-Time (Anti-Jitter Debounce)
+- **CoreAudio WASAPI Integration:** Menangkap penekanan tombol fisik keyboard (*Volume Up, Volume Down, Mute*) via Windows Audio Endpoint secara asinkron tanpa membebani CPU.
+- **Visual OSD Responsif:** Menampilkan ikon speaker dinamis (🔊/🔉/🔇), bilah progress slider yang presisi, dan teks persentase angka (misal `65%` atau `Mute`).
+- **Debounced Animation Engine:** Tidak me-restart animasi kapsul berulang-ulang saat volume ditekan berkali-kali secara cepat, sehingga tampilan tetap stabil tanpa getaran (*zero jitter*), lalu auto-hide lembut setelah 1.5 detik.
+
+### 3. 🎙️ Hardware Microphone Monitor & Interactive Quick-Toggle
+- **Penyadapan Status Mute Mic:** Memonitor endpoint mikrofon laptop bawaan (`DataFlow.Capture`) secara instan.
+- **Alert Pill Sementara (1.5 Detik):** Memberikan notifikasi transisi elegan:
+  - 🎙️ `Microphone Muted` (dengan teks aksen merah terang kontras).
+  - 🟢 `Microphone Active` (dengan teks aksen hijau segar).
+- **Persistent Status Badge:** Ikon 🔇 merah tetap menyala rapi di slot khusus sisi kanan notch selama mic masih mute agar kamu selalu ingat status mic saat voice call Discord, Zoom, atau Google Meet.
+- **One-Click Quick Toggle:** Ikon merah ini interaktif—cukup diklik sekali untuk langsung mute/unmute mikrofon laptop secara instan!
+
+### 4. 📋 Rich 3-Column Clipboard "Copied" OSD
+- **Tampilan Berisi & Elegan:** Saat menekan `Ctrl+C`, notch menampilkan layout proporsional:
+  - **Kiri:** Badge aksen hijau lembut dengan ikon checkmark (`✓`).
+  - **Tengah:** Teks bold `Copied` disertai cuplikan teks yang disalin (maksimal 25–28 karakter dengan tanda kutip), atau label `Image` / `Files`.
+  - **Kanan:** Ikon status checkmark.
+- **Lebar Dinamis Proporsional (200px – 340px):** Notch menyempit/melebar secara pas mengikuti panjang cuplikan clipboard, tidak kosong melompong.
+
+### 5. 💬 Discord & WhatsApp Web Notification Listener
+- **WinRT + UI Automation Fallback:** Menyadap notifikasi toast Windows untuk pesan masuk dari Discord dan WhatsApp (baik aplikasi desktop maupun WhatsApp Web di browser Chrome/Edge/Brave/Firefox).
+- **Notch Toast Banner:** Notch melebar menampilkan badge aplikasi (💬 / 🎮), nama pengirim pesan tebal, dan cuplikan teks pesan.
+- **Click to Foreground:** Mengklik banner notifikasi pada notch akan langsung membawa jendela Discord atau WhatsApp ke latar depan (*foreground focus*).
+
+### 6. 🖥️ Auto-Hide Saat Fullscreen (YouTube / Game / Video)
+- **Deteksi Jendela Fullscreen:** Otomatis mendeteksi saat aplikasi di foreground berada dalam mode Fullscreen (misal saat menonton video YouTube F11 di browser, VLC, atau game Fullscreen).
+- **Smooth Auto-Slide:** Notch otomatis meluncur keluar layar (`Opacity = 0`, `IsHitTestVisible = false`) agar tidak menutupi video atau kontrol game. Begitu keluar dari mode Fullscreen, notch meluncur kembali secara mulus.
+
+### 7. 🖱️ Menu Klik Kanan Fungsional (ContextMenu)
+- **Menu Cepat di Notch:** Klik kanan di area mana saja pada notch memunculkan menu berdesain modern:
+  - `⚙ Open Settings`: Membuka jendela pengaturan V-Notch di tengah layar.
+  - `🔄 Refresh Notch State`: Memulihkan tampilan notch dan mengevaluasi ulang sesi lirik/media.
+  - `👁 Hide Notch (Until Next Hover/Click)`: Menyembunyikan notch sementara hingga kursor diarahkan ke sisi atas layar.
+  - `🚪 Exit Application`: Menutup aplikasi secara bersih (`Application.Current.Shutdown()`).
+
+### 8. ⚡ Zero-Click Auto-Resume & Debloated Engine
+- **Strict Mutual Exclusion:** Setiap OSD aksi (Volume, Mute, Copied, Toast) mengunci tampilan sementara (`_isTransientOsdActive = true`) agar lirik tidak bertumpuk di atas OSD. Begitu selesai, notch langsung otomatis kembali ke lirik lagu atau jam digital tanpa memerlukan klik manual (*zero-click recovery*).
+- **Debloated Lightweight Engine:** Membersihkan library AI lokal yang berat (`LLamaSharp` dan ONNX runtime) sehingga startup aplikasi sangat cepat dan hemat konsumsi RAM.
+
+---
+
+## 🎨 Tampilan Fitur Bawaan V-Notch Asli (Upstream Core)
+
+Semua kecanggihan visual inti dari repositori upstream `rainaku/V-Notch` tetap dipertahankan secara utuh:
 
 <div align="center">
 
@@ -74,184 +125,119 @@
   <tr>
     <td align="center" valign="top" width="50%">
       <img src="Introduction/dynamic.gif" alt="Dynamic Island mode"><br>
-      <b>Dynamic Island mode</b><br>
-      <sub>A floating pill with spring animations and Liquid Glass refraction.</sub>
+      <b>Dynamic Island Mode</b><br>
+      <sub>Kapsul mengambang dengan animasi pegas (spring) dan refraksi Liquid Glass.</sub>
     </td>
     <td align="center" valign="top" width="50%">
       <img src="Introduction/media-control.gif" alt="Media controls"><br>
-      <b>Media controls</b><br>
-      <sub>Control playback and volume, view album art, and seek through the current track.</sub>
+      <b>Kontrol Pemutar Media</b><br>
+      <sub>Kontrol playback, volume slider, tampilan album art, dan seek bar lagu.</sub>
     </td>
   </tr>
   <tr>
     <td align="center" valign="top" width="50%">
       <img src="Introduction/Spotify.gif" alt="Spotify and synced lyrics"><br>
-      <b>Spotify &amp; synced lyrics</b><br>
-      <sub>Follow synced lyrics over changing color gradients or Canvas backgrounds.</sub>
+      <b>Spotify &amp; Synced Lyrics</b><br>
+      <sub>Lirik lagu tersinkronisasi di atas gradien warna album art yang dinamis.</sub>
     </td>
     <td align="center" valign="top" width="50%">
       <img src="Introduction/volume.gif" alt="Volume and audio mixer"><br>
-      <b>Volume &amp; audio mixer</b><br>
-      <sub>Adjust each app’s volume or use the master slider, styled to match the album art.</sub>
+      <b>Volume &amp; Audio Mixer</b><br>
+      <sub>Atur volume masing-masing aplikasi atau master slider audio sistem.</sub>
     </td>
   </tr>
   <tr>
     <td align="center" valign="top" width="50%">
       <img src="Introduction/file-shelf.gif" alt="File shelf"><br>
-      <b>File shelf</b><br>
-      <sub>Drop files onto the notch, then drag them into another app when you need them.</sub>
+      <b>File Shelf (Rak Berkas)</b><br>
+      <sub>Letakkan file sementara ke atas notch, lalu seret ke aplikasi lain kapan saja.</sub>
     </td>
     <td align="center" valign="top" width="50%">
       <img src="Introduction/gesture.gif" alt="Gestures"><br>
-      <b>Gestures</b><br>
-      <sub>Swipe left or right to change tracks. Scroll to switch views, or swipe down to open the shelf.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" valign="top" colspan="2">
-      <img src="Introduction/copy.gif" alt="Clipboard notification" width="50%"><br>
-      <b>Clipboard notification</b><br>
-      <sub>See a notification and preview when you copy text or images.</sub>
+      <b>Kontrol Gestur Mouse</b><br>
+      <sub>Geser kiri/kanan untuk ganti lagu, scroll untuk beralih tampilan shelf.</sub>
     </td>
   </tr>
   <tr>
     <td align="center" valign="top" width="50%">
       <img src="Introduction/liquid-glass.gif" alt="Liquid Glass optics"><br>
-      <b>Liquid Glass optics</b><br>
-      <sub>Glass rendered with DirectX 11, including chromatic aberration and refraction at the edges.</sub>
+      <b>DirectX 11 Liquid Glass</b><br>
+      <sub>Efek kaca kristal dengan chromatic aberration dan refraksi tepi layar.</sub>
     </td>
-    <td align="center" valign="top" width="50%">
-      <img src="Introduction/staybehind.gif" alt="Stay behind windows"><br>
-      <b>Stay behind windows</b><br>
-      <sub>Keep the notch on the desktop layer, below maximized apps.</sub>
-    </td>
-  </tr>
-  <tr>
     <td align="center" valign="top" width="50%">
       <img src="Introduction/spotlight.gif" alt="Spotlight search"><br>
-      <b>Spotlight search</b><br>
-      <sub>Press Alt+Space to find apps and files or calculate an expression.</sub>
-    </td>
-    <td align="center" valign="top" width="50%">
-      <img src="Introduction/settings.gif" alt="Settings"><br>
-      <b>Settings</b><br>
-      <sub>Adjust the notch’s appearance and behavior in Settings.</sub>
+      <b>Spotlight Launcher (Alt + Space)</b><br>
+      <sub>Tekan Alt+Space untuk mencari aplikasi, file, kalkulator cepat, dan AI.</sub>
     </td>
   </tr>
 </table>
 
 </div>
 
-<div id="usage"></div>
+---
 
-## Usage
+## ⌨️ Panduan Penggunaan (Usage)
 
-| Action                     | Result                                              |
-| -------------------------- | --------------------------------------------------- |
-| Hover                      | Expand the notch                                    |
-| Click                      | Toggle pill / expanded view                         |
-| Middle click               | Play / pause media                                  |
-| Scroll down                | Switch to file shelf                                |
-| Scroll up                  | Switch back to media controls                       |
-| Swipe left / right         | Previous / next track                               |
-| Swipe down                 | Open file shelf                                     |
-| `Alt + Space`              | Open or close Spotlight                             |
-| `Up` / `Down` in Spotlight | Move through results                                |
-| `Tab` in Spotlight         | Switch between Search and AI                        |
-| `Enter`                    | Launch selected item or send an AI message          |
-| `Esc`                      | Stop an AI response, leave AI mode, or close Search |
+| Aksi Mouse / Keyboard | Hasil Tampilan |
+| :--- | :--- |
+| **Arahkan Kursor (Hover)** | Membuka notch menjadi ukuran penuh (Expanded View) |
+| **Klik Kiri pada Notch** | Beralih antara mode compact (mini) dan mode expanded |
+| **Klik Tengah (Middle Click)** | Play / Pause media lagu atau video |
+| **Scroll Roda Mouse ke Bawah** | Berpindah ke rak file sementara (File Shelf) |
+| **Scroll Roda Mouse ke Atas** | Kembali ke kontrol pemutar media |
+| **Geser (Swipe) Kiri / Kanan** | Memutar lagu sebelumnya / lagu berikutnya |
+| **Klik Kanan pada Notch** | Membuka ContextMenu (Settings, Refresh, Hide, Exit) |
+| **Tekan Tombol Mic Laptop** | Muncul alert mute 1.5 detik & toggle badge merah 🔇 |
+| **Tekan Tombol Volume Keyboard** | Menampilkan animasi volume slider OSD di tengah notch |
+| **`Alt + Space`** | Membuka Spotlight Launcher untuk cari aplikasi atau kalkulator |
 
-<details>
-<summary><strong>File shelf actions</strong></summary>
+---
 
-| Action          | Result                       |
-| --------------- | ---------------------------- |
-| Drag onto notch | Stage files                  |
-| Lasso drag      | Select multiple staged files |
-| `Ctrl + Click`  | Toggle selection             |
-| Drag out        | Move to any target           |
-| `Delete`        | Remove selected files        |
+## 🛠️ Kompilasi & Build Mandiri (Building from Source)
 
-</details>
+Aplikasi ini menggunakan **.NET 8.0 SDK (Windows Desktop)**:
 
-### Spotlight AI
+1. **Clone repositori ini:**
+   ```bash
+   git clone https://github.com/Bluzee-igni/Zerono-tch-s.git
+   cd Zerono-tch-s
+   ```
+2. **Kompilasi proyek dengan .NET CLI:**
+   ```bash
+   dotnet build -c Debug
+   ```
+3. **Jalankan aplikasi:**
+   ```bash
+   dotnet run
+   ```
+   *Atau jalankan file executable siap pakai yang dihasilkan di:*
+   `bin\Debug\net8.0-windows10.0.19041.0\win-x64\V-Notch.exe`
 
-In **Settings → Spotlight**, choose a default opening mode (Search or AI). Press `Alt + Space` to open Spotlight and `Tab` to switch modes.
-Opening AI mode does not send a request; sending a message transmits it and recent conversation context directly to the selected provider.
-API keys are encrypted in local settings with Windows DPAPI and excluded from settings exports. AI conversations are also encrypted locally; see the [Privacy Policy](docs/PRIVACY_POLICY.md#48-spotlight-ai-opt-in) for storage, recipients, and deletion details.
+---
 
-<div id="installation"></div>
+## 📚 Dokumentasi Teknis Tambahan
+- **[desain.md](desain.md)**: Panduan arsitektur visual asli (Sistem Font, Palet Warna, Dimensi Geometri, Animasi, dan Peta `x:Name` XAML).
+- **[BUGFIX_DOCS.md](BUGFIX_DOCS.md)**: Dokumentasi teknis mendalam seluruh riwayat bug dan solusi arsitektur tambal sulam.
+- **[THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md)**: Pemberitahuan lisensi pihak ketiga dan pustaka open-source upstream.
 
-## Installation
+---
 
-V-Notch runs on 64-bit Windows 10 build 19041 or later, or Windows 11. It requires [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0). The self-contained installer includes the runtime. A dedicated GPU is recommended for Liquid Glass at 60-120 FPS.
+## 📄 Lisensi (License)
 
-1. Download `V-Notch-Setup.exe` from [Releases](https://github.com/rainaku/V-Notch/releases). Use `V-Notch-Setup-SelfContained.exe` to skip the .NET install.
-2. Run the installer.
-3. Launch V-Notch from the Start Menu or desktop shortcut.
-4. Optionally enable "Start with Windows" in Settings.
+Proyek ini dilisensikan di bawah **Apache License 2.0**. Lihat berkas **[LICENSE](LICENSE)** untuk ketentuan lisensi lengkap.
 
-<details>
-<summary><strong>Build with GitHub Actions</strong></summary>
+```text
+Copyright (c) 2026 rainaku (Original Author)
+Copyright (c) 2026 Bluzee-igni (Enhanced Personal Edition Modifications)
 
-Open the Actions tab, select Release Installer, and click Run workflow. Choose `framework-dependent` (smaller, requires .NET runtime) or `self-contained` (standalone). Download the installer from Artifacts when the build finishes, or from the automated `nightly` release tag.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-</details>
-
-<div id="privacy"></div>
-
-## Privacy
-
-V-Notch does not collect telemetry or analytics, or track you. It makes network requests to the following services:
-
-| Service                                              | Purpose                                                                            |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| GitHub Releases API                                  | Update checks                                                                      |
-| LRCLIB / lrc mux                                     | Synced lyrics                                                                      |
-| YouTube / SoundCloud                                 | Public thumbnails and captions                                                     |
-| Spotify Web Services                                 | Experimental Canvas, off by default; explicit opt-in; session encrypted with Windows DPAPI |
-| Open-Meteo / ipwho.is                                | Optional weather                                                                   |
-| OpenAI / Google Gemini / Anthropic Claude / DeepSeek | Optional AI messages and conversation context; DeepSeek balance refresh on request |
-
-Settings and several local caches are stored at `%APPDATA%\V-Notch\`. Encrypted AI chat history is stored separately at `%LOCALAPPDATA%\VNotch\spotlight-chats.enc`. Other component caches and temporary files are described in the Privacy Policy. Local Spotlight Search does not upload queries; Spotlight AI sends the content you submit to your selected provider.
-
-**Third-party media:** Canvas uses unofficial Spotify endpoints and requires acknowledgement before sign-in or requests. Spotify may restrict access; opt-in does not grant platform permission. YouTube captions must be accessed and used according to YouTube's terms and applicable law. Fair use is assessed case by case. Read the [external-platform notices](docs/TERMS_OF_SERVICE.md#4-external-platforms-and-content) before enabling these features.
-
-> [!NOTE]
-> **API Key Safety:** User-provided API credentials (OpenAI, Gemini, Claude, DeepSeek, YouTube) are encrypted locally with Windows DPAPI. V-Notch maintains no intermediary servers. Maintainers assume no liability for third-party billing, quota exhaustion, or credentials leaked from user environments or pre-release testing builds. Please configure spending caps on your provider accounts.
-
-Privacy dots use capture reports from Windows and recording signals from Bandicam, OBS Studio, and FFmpeg. See [recording detection coverage and limitations](RECORDING_DETECTION.md).
-
-[Privacy Policy](docs/PRIVACY_POLICY.md) · [Tiếng Việt](docs/PRIVACY_POLICY_VI.md) · [Terms of Service](docs/TERMS_OF_SERVICE.md) · [Tiếng Việt](docs/TERMS_OF_SERVICE_VI.md)
-
-## Star history
-
-Thank you to everyone who has supported V-Notch since the early releases. Your feedback and GitHub stars help keep the project going.
-
-[![Star History Chart](https://api.star-history.com/svg?repos=rainaku/v-notch&type=Date)](https://star-history.com/#rainaku/v-notch&Date)
-
-## Other projects by rainaku
-
-If you like V-Notch, check out other free and open-source Windows utilities by rainaku:
-
-- **[Vertex](https://github.com/rainaku/Vertex)** — Minimalist radial wheel file converter for Windows (built with Rust).
-- **[Scroll-V](https://github.com/rainaku/Scroll-V)** — Buttery smooth scrolling experience for all Windows applications (built with C#).
-
-## License
-
-V-Notch uses the Apache License 2.0. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
-This personal fork remains 100% free, non-commercial, and open-source under the Apache License 2.0, preserving all original attributions to [rainaku/V-Notch](https://github.com/rainaku/V-Notch).
+    http://www.apache.org/licenses/LICENSE-2.0
+```
 
 <p align="center">
-  Made by <a href="https://rainaku.id.vn">rainaku</a> ·
-  <a href="https://v-notch.vercel.app">Website</a> ·
-  <a href="https://github.com/rainaku/V-Notch">GitHub</a> ·
-  <a href="https://www.facebook.com/rain.107/">Facebook</a> ·
-  <a href="https://www.paypal.me/PhuocLe678">Donate</a>
+  Forked with respect from <a href="https://github.com/rainaku/V-Notch"><b>rainaku/V-Notch</b></a> ·
+  Maintained for personal educational productivity by <a href="https://github.com/Bluzee-igni"><b>Bluzee-igni</b></a>
 </p>
-
-
-
-### Privacy and offline controls
-
-Settings → Privacy now controls online AI, subtitles, Spotify Canvas/sign-in, weather and AI chat history independently. Strict Local-Only Mode overrides online permissions, cancels app-managed requests (including streamed responses), blocks manual AI/balance/update requests. It also blocks online links opened through the app. Turning offline mode off restores your individual choices. Disabling AI history starts an in-memory session; previous saved chats remain on disk and can be accessed again by enabling history. Offline mode is an application policy, not a Windows firewall; it cannot govern other apps or guarantee that third-party runtime background traffic is absent.

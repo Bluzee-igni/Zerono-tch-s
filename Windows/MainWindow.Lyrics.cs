@@ -135,10 +135,6 @@ public partial class MainWindow
         {
             ApplySyncedLines(lyrics.Lines, info, provider: lyrics.Provider);
         }
-        else if (info.Platform == MediaPlatform.YouTube || !string.IsNullOrEmpty(info.YouTubeVideoId))
-        {
-            await FetchSubtitlesForTrack(info);
-        }
         else
         {
             ApplySyncedLines(null, info, provider: null);
@@ -1292,6 +1288,8 @@ public partial class MainWindow
     private void UpdateCompactLyricsDisplay(string? lyricLine)
     {
         if (CompactLyricText == null || CompactTrackFallbackText == null) return;
+        if (_isTransientOsdActive) return;
+        if (!_settings.ShowCompactLyrics) lyricLine = null;
 
         bool hasLyric = !string.IsNullOrWhiteSpace(lyricLine);
         string currentText = hasLyric ? lyricLine!.Trim() : "";
@@ -1302,12 +1300,8 @@ public partial class MainWindow
             _lastCompactLyricLine = currentText;
 
             double textWidth = MeasureCompactTextWidth(currentText);
-            double targetWidth = Math.Clamp(textWidth + 84, _collapsedWidth, Math.Max(_collapsedWidth, 420));
-
-            if (!_isExpanded && _isMusicCompactMode && !_isVolumeIndicatorActive)
-            {
-                AnimateCompactWidth(targetWidth, TimeSpan.FromMilliseconds(350), _easeExpOut6, 0);
-            }
+            double targetWidth = Math.Max(_collapsedWidth, Math.Min(600, textWidth + 100));
+            TransitionToCompactSize(targetWidth, _collapsedHeight);
 
             CompactTrackFallbackText.BeginAnimation(OpacityProperty, null);
             CompactTrackFallbackText.Opacity = 0;
@@ -1326,11 +1320,6 @@ public partial class MainWindow
             if (string.IsNullOrEmpty(_lastCompactLyricLine) && CompactTrackFallbackText.Opacity > 0.9) return;
             _lastCompactLyricLine = "";
 
-            if (!_isExpanded && _isMusicCompactMode && !_isVolumeIndicatorActive)
-            {
-                AnimateCompactWidth(_collapsedWidth, TimeSpan.FromMilliseconds(350), _easeExpOut6, 0);
-            }
-
             string fallback = "";
             if (_currentMediaInfo != null && !string.IsNullOrWhiteSpace(_currentMediaInfo.CurrentTrack))
             {
@@ -1338,6 +1327,10 @@ public partial class MainWindow
                     ? _currentMediaInfo.CurrentTrack
                     : $"{_currentMediaInfo.CurrentTrack} • {_currentMediaInfo.CurrentArtist}";
             }
+
+            double fallbackWidth = MeasureCompactTextWidth(fallback);
+            double targetFallbackW = Math.Max(_collapsedWidth, Math.Min(480, fallbackWidth + 100));
+            TransitionToCompactSize(targetFallbackW, _collapsedHeight);
 
             CompactTrackFallbackText.Text = fallback;
             CompactTrackFallbackText.BeginAnimation(OpacityProperty, null);

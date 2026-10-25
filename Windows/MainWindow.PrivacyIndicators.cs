@@ -29,9 +29,12 @@ public partial class MainWindow
         bool isAudioView,
         bool isVolumeIndicatorActive,
         bool isBluetoothNotificationVisible,
-        bool isClipboardPeekActive)
+        bool isClipboardPeekActive,
+        bool isTransientOsdActive = false,
+        bool isMicMuted = false)
         => !isCompactPill || isAudioView || isVolumeIndicatorActive ||
-           isBluetoothNotificationVisible || isClipboardPeekActive;
+           isBluetoothNotificationVisible || isClipboardPeekActive ||
+           isTransientOsdActive || isMicMuted;
 
     private bool IsCompactPillForPrivacyIndicator =>
         _transitionCoordinator.ShapeState == VNotch.Controllers.NotchShapeState.Collapsed &&
@@ -43,7 +46,9 @@ public partial class MainWindow
         _isAudioView,
         _isVolumeIndicatorActive,
         _isBluetoothNotificationVisible,
-        _isClipboardPeekActive);
+        _isClipboardPeekActive,
+        _isTransientOsdActive,
+        _micMonitorService?.IsMuted == true);
 
     private void SyncPrivacyDotVisibilityForCurrentView()
     {

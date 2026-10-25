@@ -226,10 +226,8 @@ public partial class MainWindow
     private const double CompactVolumeSmoothActivationDelta = 240.0;
     private const double CompactVolumeWheelSessionResetMs = 450.0;
     private const double CompactVolumeClickSuppressMs = 600.0;
-    private UiScheduledTimer? _volumeIndicatorHideTimer;
     private bool _isVolumeIndicatorActive = false;
     private bool _volumeSynced = false;
-    private int _volumeIndicatorToken = 0;
     private double _compactVolumeWheelAccumulator = 0;
     private DateTime _lastCompactVolumeWheelUtc = DateTime.MinValue;
     private DateTime _suppressCompactVolumeWheelUntilUtc = DateTime.MinValue;
@@ -374,108 +372,34 @@ public partial class MainWindow
     }
     private void ShowVolumeIndicator(float volume, bool isMuted = false)
     {
-        if (VolumeIndicatorContainer == null || VolumeIndicatorFill == null) return;
         if (_isExpanded || _isAnimating) return;
+        if (!_settings.EnableVolumeOsd) return;
 
-        bool animateFill = _isVolumeIndicatorActive;
+        string volIcon = isMuted || volume <= 0.001f ? "🔇" : volume < 0.5f ? "🔉" : "🔊";
+        string volPercent = isMuted ? "Mute" : $"{(int)Math.Round(volume * 100)}%";
 
-        if (!_isVolumeIndicatorActive)
+        if (CompactActionIconText != null)
         {
-            if (!TryAcquireCompactSlot(VNotch.Controllers.CompactPillSlot.Volume, out int token))
-            {
-                return;
-            }
-            _volumeIndicatorToken = token;
+            CompactActionIconText.Text = volIcon;
         }
 
-        if (!_isVolumeIndicatorActive)
+        if (CompactVolumePercentText != null)
         {
-            _isVolumeIndicatorActive = true;
-            ++_volumeIndicatorExitVersion;
-            _isVolumeIndicatorExiting = false;
-            VolumeIndicatorContainer.IsHitTestVisible = true;
-            int presentationToken = _volumeIndicatorToken;
-
-            SuppressPrivacyDot();
-
-            if (_isCompactThumbnailHovered)
-            {
-                _isCompactThumbnailHovered = false;
-                _compactThumbnailHoverLeaveTimer.Stop();
-
-                NotchBorder.BeginAnimation(HeightProperty, null);
-                AnimateCompactWidth(_collapsedWidth + 24, _dur400, _easeExpOut6, _volumeIndicatorToken);
-                var heightAnim = MakeAnim(_collapsedHeight, _dur400, _easeExpOut6, VNotch.Services.AnimationConfig.TargetFps);
-                NotchBorder.BeginAnimation(HeightProperty, heightAnim);
-
-                var thumbScaleAnim = MakeAnim(1.0, _dur350, _easeExpOut6, VNotch.Services.AnimationConfig.TargetFps);
-                CompactThumbnailScale.BeginAnimation(ScaleTransform.ScaleXProperty, thumbScaleAnim);
-                CompactThumbnailScale.BeginAnimation(ScaleTransform.ScaleYProperty, thumbScaleAnim);
-
-                CompactHoverInfo.BeginAnimation(OpacityProperty, null);
-                var hoverFadeOut = MakeAnim(0.0, _dur200, _easeQuadOut);
-                hoverFadeOut.Completed += (s, e) => CompactHoverInfo.Visibility = Visibility.Collapsed;
-                CompactHoverInfo.BeginAnimation(OpacityProperty, hoverFadeOut);
-
-                AnimateCornerRadius(_cornerRadiusCollapsed, TimeSpan.FromMilliseconds(400));
-            }
-            else
-            {
-                AnimateCompactWidth(_collapsedWidth + 24, _dur350, _easeExpOut6, _volumeIndicatorToken);
-            }
-
-            MusicViz.BeginAnimation(OpacityProperty, null);
-            var vizOut = MakeAnim(1.0, 0.0, _dur200, _easeQuadOut);
-            vizOut.Completed += (s, e) =>
-            {
-                if (_isVolumeIndicatorActive && !IsCompactSlotStale(presentationToken))
-                    MusicViz.Visibility = Visibility.Collapsed;
-            };
-            MusicViz.BeginAnimation(OpacityProperty, vizOut);
-
-            CompactThumbnailBorder.BeginAnimation(OpacityProperty, null);
-            var thumbOut = MakeAnim(1.0, 0.0, _dur200, _easeQuadOut);
-            thumbOut.Completed += (s, e) =>
-            {
-                if (_isVolumeIndicatorActive && !IsCompactSlotStale(presentationToken))
-                    CompactThumbnailBorder.Visibility = Visibility.Collapsed;
-            };
-            CompactThumbnailBorder.BeginAnimation(OpacityProperty, thumbOut);
-
-            VolumeIndicatorContainer.Visibility = Visibility.Visible;
-            VolumeIndicatorContainer.Opacity = 0;
-            VolumeIndicatorContainer.BeginAnimation(OpacityProperty, null);
-            var indicatorIn = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
-            VolumeIndicatorContainer.BeginAnimation(OpacityProperty, indicatorIn);
+            CompactVolumePercentText.Text = volPercent;
         }
 
-        double displayVolume = isMuted ? 0 : volume;
-        SetVolumeFill(VolumeIndicatorScale, displayVolume, animate: animateFill);
-
-        if (VolumeOsdText != null)
+        if (CompactVolumeFill != null)
         {
-            VolumeOsdText.Text = isMuted ? "Mute" : $"{(int)Math.Round(volume * 100)}%";
-        }
-        if (VolumeOsdIcon != null)
-        {
-            VolumeOsdIcon.Text = isMuted || volume <= 0.001f ? "🔇" : volume < 0.5f ? "🔉" : "🔊";
+            double trackW = CompactVolumeTrack?.ActualWidth ?? 0;
+            if (trackW <= 0) trackW = 160;
+            double fillW = Math.Max(0, Math.Min(1.0, isMuted ? 0 : volume)) * trackW;
+            CompactVolumeFill.Width = fillW;
         }
 
-        if (_volumeIndicatorHideTimer == null)
-        {
-            _volumeIndicatorHideTimer = new UiScheduledTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(1500)
-            };
-            _volumeIndicatorHideTimer.Tick += (s, e) =>
-            {
-                _volumeIndicatorHideTimer.Stop();
-                ResetCompactVolumeWheelIntent();
-                HideVolumeIndicator();
-            };
-        }
-        _volumeIndicatorHideTimer.Stop();
-        _volumeIndicatorHideTimer.Start();
+        if (VolumeOsdText != null) VolumeOsdText.Text = volPercent;
+        if (VolumeOsdIcon != null) VolumeOsdIcon.Text = volIcon;
+
+        SetTransientAction(CompactTransientAction.Volume, TimeSpan.FromMilliseconds(1500));
     }
 
     public void OnHardwareVolumeChanged(float volume, bool isMuted)
@@ -495,115 +419,20 @@ public partial class MainWindow
 
     private void HideVolumeIndicator()
     {
-        if (VolumeIndicatorContainer == null) return;
-        if (!_isVolumeIndicatorActive || IsCompactSlotStale(_volumeIndicatorToken)) return;
         ResetCompactVolumeWheelIntent();
-        int token = _volumeIndicatorToken;
-
-        _isVolumeIndicatorActive = false;
-        _volumeSynced = false;
-        _compactPillArbiter.Release(token);
-        _volumeIndicatorToken = 0;
-
-        RestorePrivacyDotVisibility();
-
-        if (_isExpanded || _isAnimating)
-        {
-            VolumeIndicatorContainer.BeginAnimation(OpacityProperty, null);
-            VolumeIndicatorContainer.Opacity = 0;
-            VolumeIndicatorContainer.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        AnimateCompactWidth(_collapsedWidth, _dur350, _easeExpOut6, 0);
-
-        VolumeIndicatorContainer.BeginAnimation(OpacityProperty, null);
-        var fadeOut = MakeAnim(1.0, 0.0, _dur250, _easeQuadOut);
-        fadeOut.Completed += (s, e) =>
-        {
-            if (!_isVolumeIndicatorActive)
-                VolumeIndicatorContainer.Visibility = Visibility.Collapsed;
-        };
-        VolumeIndicatorContainer.BeginAnimation(OpacityProperty, fadeOut);
-
-        if (_isMusicCompactMode)
-        {
-            if (!_isClipboardPeekActive)
-            {
-                CompactThumbnailBorder.Visibility = Visibility.Visible;
-                CompactThumbnailBorder.Opacity = 0;
-                CompactThumbnailBorder.BeginAnimation(OpacityProperty, null);
-                var thumbIn = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
-                CompactThumbnailBorder.BeginAnimation(OpacityProperty, thumbIn);
-                ShowMusicVisualizer(duration: _dur100);
-            }
-        }
-        else
-        {
-            CollapsedContent.Visibility = Visibility.Visible;
-            CollapsedContent.Opacity = 0;
-            CollapsedContent.BeginAnimation(OpacityProperty, null);
-            var contentIn = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
-            CollapsedContent.BeginAnimation(OpacityProperty, contentIn);
-        }
-    }
-
-    private bool _isVolumeIndicatorExiting;
-    private int _volumeIndicatorExitVersion;
-
-    private void DismissVolumeIndicatorImmediate(bool restoreMedia = false, bool animateExit = false)
-    {
-        int exitVersion = ++_volumeIndicatorExitVersion;
-        _isVolumeIndicatorExiting = animateExit;
-        _volumeIndicatorHideTimer?.Stop();
-        ResetCompactVolumeWheelIntent();
-        int token = _volumeIndicatorToken;
-
         _isVolumeIndicatorActive = false;
         _volumeSynced = false;
         _isDraggingVolumeIndicator = false;
-        _compactPillArbiter.Release(token);
-        _volumeIndicatorToken = 0;
+        EvaluateAndRestoreNotchState();
+    }
 
-        if (VolumeIndicatorContainer != null)
-        {
-            VolumeIndicatorContainer.ReleaseMouseCapture();
-            double liveOpacity = VolumeIndicatorContainer.Opacity;
-            VolumeIndicatorContainer.BeginAnimation(OpacityProperty, null);
-            VolumeIndicatorContainer.Opacity = 0;
-            if (animateExit && VolumeIndicatorContainer.Visibility == Visibility.Visible)
-            {
-                VolumeIndicatorContainer.IsHitTestVisible = false;
-                var fadeOut = MakeAnim(liveOpacity, 0.0, _dur250, _easeQuadOut);
-                fadeOut.Completed += (_, _) =>
-                {
-                    if (exitVersion != _volumeIndicatorExitVersion) return;
-                    _isVolumeIndicatorExiting = false;
-                    VolumeIndicatorContainer.Visibility = Visibility.Collapsed;
-                    VolumeIndicatorContainer.BeginAnimation(OpacityProperty, null);
-                    VolumeIndicatorContainer.IsHitTestVisible = true;
-                };
-                VolumeIndicatorContainer.BeginAnimation(OpacityProperty, fadeOut);
-            }
-            else
-            {
-                _isVolumeIndicatorExiting = false;
-                VolumeIndicatorContainer.Visibility = Visibility.Collapsed;
-                VolumeIndicatorContainer.IsHitTestVisible = true;
-            }
-        }
-
-        if (CompactThumbnailBorder != null)
-        {
-            CompactThumbnailBorder.BeginAnimation(OpacityProperty, null);
-        }
-        if (MusicViz != null)
-        {
-            MusicViz.BeginAnimation(OpacityProperty, null);
-        }
-
-        RestorePrivacyDotVisibility();
-        if (restoreMedia) RestoreCompactMediaPresentation();
+    private void DismissVolumeIndicatorImmediate(bool restoreMedia = false, bool animateExit = false)
+    {
+        ResetCompactVolumeWheelIntent();
+        _isVolumeIndicatorActive = false;
+        _volumeSynced = false;
+        _isDraggingVolumeIndicator = false;
+        EvaluateAndRestoreNotchState();
     }
 
     #region Volume Indicator Drag
@@ -617,7 +446,7 @@ public partial class MainWindow
         VolumeIndicatorContainer.CaptureMouse();
         SetVolumeFromIndicatorPosition(e);
 
-        _volumeIndicatorHideTimer?.Stop();
+        _transientActionTimer?.Stop();
     }
 
     private void VolumeIndicator_MouseMove(object sender, MouseEventArgs e)
@@ -634,8 +463,8 @@ public partial class MainWindow
         _isDraggingVolumeIndicator = false;
         VolumeIndicatorContainer.ReleaseMouseCapture();
 
-        _volumeIndicatorHideTimer?.Stop();
-        _volumeIndicatorHideTimer?.Start();
+        _transientActionTimer?.Stop();
+        _transientActionTimer?.Start();
     }
 
     private void SetVolumeFromIndicatorPosition(MouseEventArgs e)
@@ -799,6 +628,35 @@ public partial class MainWindow
     private void UpdateVolumeIcon(float volume, bool isMuted)
     {
         _viewModel.UpdateVolumeState(volume, isMuted);
+    }
+
+    private void NotchCloseButton_Click(object sender, MouseButtonEventArgs e)
+    {
+        CollapseAll();
+    }
+
+    private void NotchContext_HideUntilHover_Click(object sender, RoutedEventArgs e)
+    {
+        CollapseAll();
+        if (NotchContainer != null)
+        {
+            NotchContainer.BeginAnimation(OpacityProperty, null);
+            NotchContainer.Opacity = 0;
+            NotchContainer.IsHitTestVisible = false;
+        }
+    }
+
+    private void NotchContext_RestartState_Click(object sender, RoutedEventArgs e)
+    {
+        _isTransientOsdActive = false;
+        _activeTransientAction = CompactTransientAction.None;
+        _transientActionTimer?.Stop();
+        EvaluateAndRestoreNotchState();
+    }
+
+    private void NotchContext_ExitApp_Click(object sender, RoutedEventArgs e)
+    {
+        Exit_Click(sender, e);
     }
 
     #endregion

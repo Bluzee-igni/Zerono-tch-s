@@ -25,6 +25,12 @@ public partial class SettingsWindow
 {
     #region Button Handlers
 
+    private void ExitApp_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+        App.RequestShutdownAsync().SafeFireAndForget("APP-SHUTDOWN");
+    }
+
     private void Reset_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -101,6 +107,21 @@ public partial class SettingsWindow
             _settings.BatteryDeviceId = defaults.BatteryDeviceId;
             HideOnExclusiveFullscreenCheck.IsChecked = defaults.HideOnExclusiveFullscreen;
             HideOnWindowedFullscreenCheck.IsChecked = defaults.HideOnWindowedFullscreen;
+
+            ShowCompactLyricsCheck.IsChecked = defaults.ShowCompactLyrics;
+            AutoHideFullscreenCheck.IsChecked = defaults.AutoHideInFullscreen;
+            EnableVolumeOsdCheck.IsChecked = defaults.EnableVolumeOsd;
+            EnableMicMuteAlertCheck.IsChecked = defaults.EnableMicMuteAlert;
+            EnableClipboardToastCheck.IsChecked = defaults.EnableClipboardToast;
+            EnableAppNotificationsCheck.IsChecked = defaults.EnableAppNotifications;
+            foreach (System.Windows.Controls.ComboBoxItem item in NotchSizePresetCombo.Items)
+            {
+                if (string.Equals(item.Tag as string, defaults.NotchSizePreset, StringComparison.OrdinalIgnoreCase))
+                {
+                    NotchSizePresetCombo.SelectedItem = item;
+                    break;
+                }
+            }
             IdleAutoHideCheck.IsChecked = defaults.EnableIdleAutoHide;
             IdleAutoHideDelaySlider.Value = Math.Max(2, defaults.IdleAutoHideDelay / 1000.0);
             IdleAutoHideDelaySlider.IsEnabled = defaults.EnableIdleAutoHide;
@@ -601,6 +622,29 @@ public partial class SettingsWindow
         snapshot.EnableDebugMode = EnableDebugModeCheck.IsChecked ?? false;
         snapshot.HideOnExclusiveFullscreen = HideOnExclusiveFullscreenCheck.IsChecked ?? true;
         snapshot.HideOnWindowedFullscreen = HideOnWindowedFullscreenCheck.IsChecked ?? true;
+
+        snapshot.ShowCompactLyrics = ShowCompactLyricsCheck.IsChecked ?? true;
+        snapshot.AutoHideInFullscreen = AutoHideFullscreenCheck.IsChecked ?? true;
+        snapshot.EnableVolumeOsd = EnableVolumeOsdCheck.IsChecked ?? true;
+        snapshot.EnableMicMuteAlert = EnableMicMuteAlertCheck.IsChecked ?? true;
+        snapshot.EnableClipboardToast = EnableClipboardToastCheck.IsChecked ?? true;
+        snapshot.EnableAppNotifications = EnableAppNotificationsCheck.IsChecked ?? true;
+        if (NotchSizePresetCombo.SelectedItem is System.Windows.Controls.ComboBoxItem selectedPreset && selectedPreset.Tag is string presetTag)
+        {
+            snapshot.NotchSizePreset = presetTag;
+            if (presetTag == "Compact")
+            {
+                snapshot.Width = 130;
+            }
+            else if (presetTag == "Wide")
+            {
+                snapshot.Width = 360;
+            }
+            else
+            {
+                snapshot.Width = 230;
+            }
+        }
         snapshot.EnableIdleAutoHide = IdleAutoHideCheck.IsChecked ?? false;
         snapshot.IdleAutoHideDelay = Math.Max(1000, (int)(IdleAutoHideDelaySlider.Value * 1000));
         snapshot.ShowMusicNotifications = MusicNotifyCheck.IsChecked ?? true;

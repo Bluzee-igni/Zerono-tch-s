@@ -420,7 +420,24 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
 
         try
         {
-            _currentSession = sessionManager.GetCurrentSession();
+            GlobalSystemMediaTransportControlsSession? bestSession = null;
+            try
+            {
+                var sessions = sessionManager.GetSessions();
+                bestSession = sessions?.FirstOrDefault(s =>
+                {
+                    try
+                    {
+                        var info = s.GetPlaybackInfo();
+                        return info != null && info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing
+                               && !IsIgnoredSourceApp(s.SourceAppUserModelId ?? "");
+                    }
+                    catch { return false; }
+                });
+            }
+            catch { }
+
+            _currentSession = bestSession ?? sessionManager.GetCurrentSession();
             if (_currentSession != null && !AreSameSession(_currentSession, _activeDisplaySession))
             {
                 _currentSession.TimelinePropertiesChanged += OnTimelineChanged;
@@ -515,7 +532,8 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
                 const ChangeTypes ForceRefreshMask = ChangeTypes.MediaProperties
                     | ChangeTypes.Playback
                     | ChangeTypes.SessionChanged
-                    | ChangeTypes.ForceRefresh;
+                    | ChangeTypes.ForceRefresh
+                    | ChangeTypes.Heartbeat;
                 bool forceRefresh = (types & ForceRefreshMask) != 0;
 
                 if ((types & ChangeTypes.SessionChanged) != 0)
@@ -539,11 +557,11 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
         {
             var interval = _currentMode switch
             {
-                DetectionMode.Idle => TimeSpan.FromSeconds(5),
-                DetectionMode.AwaitingMetadata => TimeSpan.FromSeconds(3),
-                DetectionMode.EventDriven => TimeSpan.FromSeconds(3),
-                DetectionMode.ThrottledMedia => TimeSpan.FromMilliseconds(1500),
-                _ => TimeSpan.FromSeconds(3)
+                DetectionMode.Idle => TimeSpan.FromMilliseconds(1000),
+                DetectionMode.AwaitingMetadata => TimeSpan.FromMilliseconds(500),
+                DetectionMode.EventDriven => TimeSpan.FromMilliseconds(500),
+                DetectionMode.ThrottledMedia => TimeSpan.FromMilliseconds(500),
+                _ => TimeSpan.FromMilliseconds(500)
             };
 
             try
@@ -730,12 +748,41 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
         }
     }
 
+    private CancellationTokenSource? _stagedTrackRefreshCts;
+
+    private void TriggerStagedTrackRefresh()
+    {
+        _stagedTrackRefreshCts?.Cancel();
+        _stagedTrackRefreshCts?.Dispose();
+        _stagedTrackRefreshCts = new CancellationTokenSource();
+        var ct = _stagedTrackRefreshCts.Token;
+
+        Task.Run(async () =>
+        {
+            int[] delaysMs = { 300, 800, 1800 };
+            foreach (int delay in delaysMs)
+            {
+                try
+                {
+                    await Task.Delay(delay, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) { return; }
+
+                if (_disposed || ct.IsCancellationRequested) return;
+
+                _changes.Enqueue(ChangeTypes.MediaProperties | ChangeTypes.ForceRefresh);
+            }
+        }, ct);
+    }
+
     private void TrackNameChangeBookkeeping(MediaInfo info)
     {
         if (info.CurrentTrack == _lastTrackName) return;
 
         _lastTrackName = info.CurrentTrack;
         _lastMetadataChangeTime = DateTime.UtcNow;
+        CachedThumbnail = null;
+        TriggerStagedTrackRefresh();
 
         if (!string.IsNullOrEmpty(info.CurrentTrack))
         {
@@ -1313,8 +1360,14 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
             string sessionKeyDuringFetch = info.SessionInstanceKey ?? "";
             int generationAtStart = Volatile.Read(ref _thumbnailFetchGeneration);
 
-            bool isBrowserIcon = info.Thumbnail != null && info.Platform == MediaPlatform.Browser;
-            bool needsBetterThumb = shouldForceThumbFetch || info.Thumbnail == null || info.Thumbnail.PixelWidth < 120 || isBrowserIcon;
+            bool isBrowserIcon = info.Thumbnail != null && (info.Thumbnail.PixelWidth <= 64 || info.Thumbnail.PixelHeight <= 64);
+            bool hasRealAlbumArt = info.Thumbnail != null && info.Thumbnail.PixelWidth >= 120 && Math.Abs((double)info.Thumbnail.PixelWidth / info.Thumbnail.PixelHeight - 1.0) < 0.15;
+            bool needsBetterThumb = (shouldForceThumbFetch || info.Thumbnail == null || info.Thumbnail.PixelWidth < 120 || isBrowserIcon) && !hasRealAlbumArt;
+
+            if (hasRealAlbumArt)
+            {
+                return;
+            }
 
             _ = Task.Run(() => FetchYouTubeThumbnailAsync(
                 info, token, shouldForceThumbFetch, trackDuringFetch, artistDuringFetch,
@@ -1660,7 +1713,7 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
                         }
                     }
 
-                    if (needsBetterThumb || info.Platform == MediaPlatform.YouTube)
+                    if (needsBetterThumb)
                     {
                         BitmapSource? frameBitmap = null;
                         string thumbnailUrl;
@@ -3789,6 +3842,9 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
 
             ctsToCancel = _bgCts;
             _bgCts = null;
+            _stagedTrackRefreshCts?.Cancel();
+            _stagedTrackRefreshCts?.Dispose();
+            _stagedTrackRefreshCts = null;
             if (isDisposing) _pinReconnect.Dispose();
             else _pinReconnect.Reset();
 

@@ -46,14 +46,7 @@ public sealed class FullscreenAutoHideController : IDisposable
     private void SyncTimerState()
     {
         if (_disposed) return;
-        if (_settings.HideOnExclusiveFullscreen || _settings.HideOnWindowedFullscreen)
-        {
-            _pollTimer.Start();
-        }
-        else
-        {
-            _pollTimer.Stop();
-        }
+        _pollTimer.Start();
     }
 
     private void PollTimer_Tick(object? sender, EventArgs e)
@@ -74,8 +67,7 @@ public sealed class FullscreenAutoHideController : IDisposable
         IntPtr notchHwnd = _getNotchHwnd();
         if (notchHwnd == IntPtr.Zero) return false;
 
-        if (_isAutoHideSuppressed?.Invoke() == true ||
-            (!_settings.HideOnExclusiveFullscreen && !_settings.HideOnWindowedFullscreen))
+        if (_isAutoHideSuppressed?.Invoke() == true || !_settings.AutoHideInFullscreen)
         {
             if (_isHiddenByFullscreen)
             {
@@ -170,8 +162,8 @@ public sealed class FullscreenAutoHideController : IDisposable
 
     private bool ShouldHideForType(FullscreenType type) => type switch
     {
-        FullscreenType.ExclusiveFullscreen => _settings.HideOnExclusiveFullscreen,
-        FullscreenType.WindowedFullscreen => _settings.HideOnWindowedFullscreen,
+        FullscreenType.ExclusiveFullscreen => true,
+        FullscreenType.WindowedFullscreen => true,
         _ => false
     };
 

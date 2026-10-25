@@ -71,12 +71,17 @@ public partial class SettingsWindow
         ShellContent.SnapsToDevicePixels = false;
         ShellContent.UseLayoutRounding = false;
 
-        double finalLeft = Left;
-        double finalTop = Top;
+        double finalLeft = double.IsNaN(Left) || Left <= 0 ? (SystemParameters.PrimaryScreenWidth - (ActualWidth > 0 ? ActualWidth : Width)) / 2.0 : Left;
+        double finalTop = double.IsNaN(Top) || Top <= 0 ? (SystemParameters.PrimaryScreenHeight - (ActualHeight > 0 ? ActualHeight : Height)) / 2.0 : Top;
 
         double targetStartLeft = notchLeft + notchW / 2.0 - ActualWidth / 2.0;
-        double startOffsetX = Math.Abs(targetStartLeft - finalLeft) >= 0.5 ? targetStartLeft - finalLeft : 0;
-        double startOffsetY = notchTop - finalTop;
+        double startOffsetX = (!double.IsNaN(targetStartLeft) && !double.IsNaN(finalLeft) && Math.Abs(targetStartLeft - finalLeft) >= 0.5) ? targetStartLeft - finalLeft : 0;
+        double startOffsetY = (!double.IsNaN(notchTop) && !double.IsNaN(finalTop)) ? notchTop - finalTop : 0;
+
+        if (double.IsNaN(startScaleX) || startScaleX <= 0) startScaleX = 0.95;
+        if (double.IsNaN(startScaleY) || startScaleY <= 0) startScaleY = 0.95;
+        if (double.IsNaN(startOffsetX)) startOffsetX = 0;
+        if (double.IsNaN(startOffsetY)) startOffsetY = 0;
 
         ShellScale.ScaleX = startScaleX;
         ShellScale.ScaleY = startScaleY;

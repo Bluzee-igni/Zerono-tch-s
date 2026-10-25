@@ -517,11 +517,13 @@
                             MinWidth="0"
                             BorderThickness="0"
                             Background="#121212"
-                            Foreground="{StaticResource SettingsTextBrush}"
-                            FontFamily="{StaticResource IconFont}"
-                            FontSize="11"
-                            Content="&#xE711;"
-                            Click="Cancel_Click"/>
+                            Cursor="Hand"
+                            Click="Cancel_Click">
+                        <TextBlock Text="✕" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource SettingsTextBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Margin="0,-1,0,0"/>
+                    </Button>
                 </Grid>
             </Border>
 
@@ -1166,6 +1168,67 @@
                                                 <TextBlock x:Name="HideOnWindowedFullscreenHint" Text="Hide the notch when a borderless windowed fullscreen app is detected."
                                                            Style="{StaticResource SettingHintText}"
                                                            Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource SettingRowBorder}">
+                                            <StackPanel>
+                                                <CheckBox x:Name="ShowCompactLyricsCheck" Content="Show Synced Lyrics in Compact Notch"/>
+                                                <TextBlock Text="Display real-time synchronized song lyrics in the center of the compact notch."
+                                                           Style="{StaticResource SettingHintText}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource SettingRowBorder}">
+                                            <StackPanel>
+                                                <CheckBox x:Name="AutoHideFullscreenCheck" Content="Auto-Hide in Fullscreen Apps &amp; Videos"/>
+                                                <TextBlock Text="Automatically slide the notch out of view during YouTube Fullscreen, games, or video playback."
+                                                           Style="{StaticResource SettingHintText}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource SettingRowBorder}">
+                                            <StackPanel>
+                                                <CheckBox x:Name="EnableVolumeOsdCheck" Content="Enable Volume OSD in Notch"/>
+                                                <TextBlock Text="Display animated volume progress bar and percentage inside notch when adjusting volume."
+                                                           Style="{StaticResource SettingHintText}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource SettingRowBorder}">
+                                            <StackPanel>
+                                                <CheckBox x:Name="EnableMicMuteAlertCheck" Content="Enable Microphone Mute Alert &amp; Indicator"/>
+                                                <TextBlock Text="Show 1.5s alert and permanent status badge when hardware microphone is muted."
+                                                           Style="{StaticResource SettingHintText}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource SettingRowBorder}">
+                                            <StackPanel>
+                                                <CheckBox x:Name="EnableClipboardToastCheck" Content="Enable Clipboard 'Copied' Notification"/>
+                                                <TextBlock Text="Show rich 3-column pill with snippet preview and green checkmark when copying content."
+                                                           Style="{StaticResource SettingHintText}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource SettingRowBorder}">
+                                            <StackPanel>
+                                                <CheckBox x:Name="EnableAppNotificationsCheck" Content="Enable Discord &amp; WhatsApp Web Notifications"/>
+                                                <TextBlock Text="Capture incoming messages from Discord and WhatsApp Web and display in notch."
+                                                           Style="{StaticResource SettingHintText}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource SettingRowBorder}">
+                                            <StackPanel>
+                                                <TextBlock Text="Notch Size Preset" Style="{StaticResource SettingTitleText}"/>
+                                                <TextBlock Text="Choose between Original V-Notch (230px), Compact (130px), or Wide (360px)."
+                                                           Style="{StaticResource SettingHintText}" Margin="0,2,0,8"/>
+                                                <ComboBox x:Name="NotchSizePresetCombo" Width="200" HorizontalAlignment="Left">
+                                                    <ComboBoxItem Content="Original (230px)" Tag="Default" IsSelected="True"/>
+                                                    <ComboBoxItem Content="Compact (130px)" Tag="Compact"/>
+                                                    <ComboBoxItem Content="Wide (360px)" Tag="Wide"/>
+                                                </ComboBox>
                                             </StackPanel>
                                         </Border>
 
@@ -3083,11 +3146,18 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <Button x:Name="ResetButton" Grid.Column="0" HorizontalAlignment="Left"
-                            Height="36" MinWidth="80" Padding="12,0" Background="Transparent" BorderThickness="0" Foreground="#AAAAAA"
-                            Margin="0,0,8,0"
-                            Content="Reset"
-                            Click="Reset_Click"/>
+                    <StackPanel Orientation="Horizontal" Grid.Column="0" HorizontalAlignment="Left">
+                        <Button x:Name="ResetButton"
+                                Height="36" MinWidth="80" Padding="12,0" Background="Transparent" BorderThickness="0" Foreground="#AAAAAA"
+                                Margin="0,0,8,0"
+                                Content="Reset to Defaults"
+                                Click="Reset_Click"/>
+                        <Button x:Name="ExitAppButton"
+                                Height="36" MinWidth="80" Padding="12,0" Background="Transparent" BorderThickness="0" Foreground="#FF453A"
+                                Margin="4,0"
+                                Content="Quit V-Notch"
+                                Click="ExitApp_Click"/>
+                    </StackPanel>
                     <Button x:Name="ApplyButton" Grid.Column="1" Height="36" MinWidth="96"
                             Margin="4,0"
                             Content="Apply"

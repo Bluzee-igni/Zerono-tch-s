@@ -13,7 +13,6 @@ public partial class MainWindow
     #region Clipboard Peek
 
     private bool _isClipboardPeekActive = false;
-    private int _clipboardPeekToken = 0;
     private UiScheduledTimer? _clipboardRevertTimer;
 
     private void PlayClipboardPeek()
@@ -49,144 +48,71 @@ public partial class MainWindow
             NotchShadowScale.BeginAnimation(ScaleTransform.ScaleYProperty, bounceY);
         }
 
-        if (_isMusicCompactMode && !_isExpanded)
+        if (!_isExpanded)
         {
             ShowClipboardCopiedState();
         }
     }
     private void ShowClipboardCopiedState()
     {
-        if (!TryAcquireCompactSlot(VNotch.Controllers.CompactPillSlot.Clipboard, out int token))
-            return;
-
-        _clipboardPeekToken = token;
-        _isClipboardPeekActive = true;
-
-        SuppressPrivacyDot();
-
-        ClipboardCopiedText.Text = Loc.Get("clipboard.copied").TrimStart('✓', ' ');
-
-        CancelThumbnailSwitchAnimations();
-
-        CompactThumbnailBorder.BeginAnimation(OpacityProperty, null);
-        CompactThumbnailScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-        CompactThumbnailScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-        var thumbFadeOut = MakeAnim(1.0, 0.0, _dur150, _easeQuadOut);
-        thumbFadeOut.Completed += (s, e) =>
+        if (!_settings.EnableClipboardToast) return;
+        string snippet = "";
+        try
         {
-            if (_isClipboardPeekActive && !IsCompactSlotStale(token))
-                CompactThumbnailBorder.Visibility = Visibility.Collapsed;
-        };
-        CompactThumbnailBorder.BeginAnimation(OpacityProperty, thumbFadeOut);
-
-        MusicViz.BeginAnimation(OpacityProperty, null);
-        MusicViz.Opacity = 1;
-        MusicViz.Visibility = Visibility.Visible;
-        MusicViz.SetCopiedFeedback(true);
-
-        CompactHoverInfo.BeginAnimation(OpacityProperty, null);
-        CompactHoverInfo.Opacity = 0;
-        CompactHoverInfo.Visibility = Visibility.Collapsed;
-
-        HideCompactSurface(ClipboardCheckIcon);
-
-        ClipboardCopiedText.Visibility = Visibility.Visible;
-        ClipboardCopiedText.BeginAnimation(OpacityProperty, null);
-        ClipboardCopiedTranslate.BeginAnimation(TranslateTransform.XProperty, null);
-
-        ClipboardCopiedTranslate.X = -8;
-
-        var textFadeIn = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
-        var textSlideIn = MakeAnim(-8.0, 0.0, _dur350, _easeExpOut6);
-        Timeline.SetDesiredFrameRate(textSlideIn, VNotch.Services.AnimationConfig.TargetFps);
-
-        ClipboardCopiedText.BeginAnimation(OpacityProperty, textFadeIn);
-        ClipboardCopiedTranslate.BeginAnimation(TranslateTransform.XProperty, textSlideIn);
-
-        StopClipboardRevertTimer();
-
-        int revertToken = _clipboardPeekToken;
-        var revertTimer = new UiScheduledTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(1600)
-        };
-        _clipboardRevertTimer = revertTimer;
-        revertTimer.Tick += (s, e) =>
-        {
-            revertTimer.Stop();
-            if (!ReferenceEquals(_clipboardRevertTimer, revertTimer) ||
-                revertToken != _clipboardPeekToken)
+            if (Clipboard.ContainsText())
             {
-                return;
+                string text = Clipboard.GetText();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    text = text.Replace("\r", " ").Replace("\n", " ").Trim();
+                    if (text.Length > 28)
+                    {
+                        text = text.Substring(0, 25) + "...";
+                    }
+                    snippet = $"\"{text}\"";
+                }
             }
+            else if (Clipboard.ContainsImage())
+            {
+                snippet = "Image";
+            }
+            else if (Clipboard.ContainsFileDropList())
+            {
+                snippet = "Files";
+            }
+        }
+        catch { }
 
-            _clipboardRevertTimer = null;
-            RevertClipboardCopiedState();
-        };
-        revertTimer.Start();
+        if (CompactCopiedSnippet != null)
+        {
+            if (!string.IsNullOrEmpty(snippet))
+            {
+                CompactCopiedSnippet.Text = snippet;
+                CompactCopiedSnippet.Visibility = Visibility.Visible;
+                if (CompactCopiedSeparator != null) CompactCopiedSeparator.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                CompactCopiedSnippet.Text = "";
+                CompactCopiedSnippet.Visibility = Visibility.Collapsed;
+                if (CompactCopiedSeparator != null) CompactCopiedSeparator.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        if (ClipboardCopiedText != null)
+        {
+            ClipboardCopiedText.Text = Loc.Get("clipboard.copied").TrimStart('✓', ' ');
+        }
+        SetTransientAction(CompactTransientAction.Clipboard, TimeSpan.FromMilliseconds(1600));
     }
     private void RevertClipboardCopiedState()
     {
-        int token = _clipboardPeekToken;
-        if (IsCompactSlotStale(token)) return;
-        _isClipboardPeekActive = false;
-        _compactPillArbiter.Release(token);
-        _clipboardPeekToken = 0;
-
-        RestorePrivacyDotVisibility();
-
-        MusicViz.SetCopiedFeedback(false);
-        HideCompactSurface(ClipboardCheckIcon);
-
-        ClipboardCopiedText.BeginAnimation(OpacityProperty, null);
-        ClipboardCopiedTranslate.BeginAnimation(TranslateTransform.XProperty, null);
-
-        var textFadeOut = MakeAnim(1.0, 0.0, _dur250, _easeQuadOut);
-        var textSlideOut = MakeAnim(0.0, -8.0, _dur350, _easeExpOut6);
-        Timeline.SetDesiredFrameRate(textSlideOut, VNotch.Services.AnimationConfig.TargetFps);
-
-        textFadeOut.Completed += (s, e) =>
-        {
-            if (!_isClipboardPeekActive)
-                ClipboardCopiedText.Visibility = Visibility.Collapsed;
-        };
-
-        ClipboardCopiedText.BeginAnimation(OpacityProperty, textFadeOut);
-        ClipboardCopiedTranslate.BeginAnimation(TranslateTransform.XProperty, textSlideOut);
-
-        CompactThumbnailBorder.BeginAnimation(OpacityProperty, null);
-        CompactThumbnailScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-        CompactThumbnailScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-        CompactThumbnailScale.ScaleX = 1.0;
-        CompactThumbnailScale.ScaleY = 1.0;
-        CompactThumbnailBorder.Visibility = Visibility.Visible;
-        CompactThumbnailBorder.Opacity = 0;
-        var thumbFadeIn = MakeAnim(0.0, 1.0, _dur200, _easeQuadOut);
-        CompactThumbnailBorder.BeginAnimation(OpacityProperty, thumbFadeIn);
-
-        ShowMusicVisualizer(duration: _dur100);
+        EvaluateAndRestoreNotchState();
     }
 
     private void CancelClipboardPeekImmediate()
     {
-        if (!_isClipboardPeekActive) return;
-
-        StopClipboardRevertTimer();
-        MusicViz.SetCopiedFeedback(false);
-        _isClipboardPeekActive = false;
-        _clipboardPeekToken = 0;
-
-        ClipboardCheckIcon.BeginAnimation(OpacityProperty, null);
-        ClipboardCheckScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-        ClipboardCheckScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-        ClipboardCheckIcon.Opacity = 0;
-        ClipboardCheckIcon.Visibility = Visibility.Collapsed;
-
-        ClipboardCopiedText.BeginAnimation(OpacityProperty, null);
-        ClipboardCopiedTranslate.BeginAnimation(TranslateTransform.XProperty, null);
-        ClipboardCopiedText.Opacity = 0;
-        ClipboardCopiedText.Visibility = Visibility.Collapsed;
-
+        EvaluateAndRestoreNotchState();
     }
 
     private void StopClipboardRevertTimer()

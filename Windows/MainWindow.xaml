@@ -495,6 +495,40 @@
                   DragOver="NotchWrapper_DragOver"
                   DragLeave="NotchWrapper_DragLeave"
                   Drop="NotchWrapper_DragDrop">
+                <Grid.ContextMenu>
+                    <ContextMenu Style="{StaticResource TrayContextMenuStyle}">
+                        <MenuItem Style="{StaticResource TrayMenuItemStyle}"
+                                  Icon="{StaticResource TraySettingsIconGeometry}"
+                                  Click="OpenSettings_Click">
+                            <MenuItem.Header>
+                                <TextBlock Text="Open Settings" Style="{StaticResource TrayMenuItemText}"/>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <MenuItem Style="{StaticResource TrayMenuItemStyle}"
+                                  Icon="{StaticResource TrayRestartIconGeometry}"
+                                  Click="NotchContext_RestartState_Click">
+                            <MenuItem.Header>
+                                <TextBlock Text="Refresh Notch State" Style="{StaticResource TrayMenuItemText}"/>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <MenuItem Style="{StaticResource TrayMenuItemStyle}"
+                                  Icon="{StaticResource TrayHideNotchIconGeometry}"
+                                  Click="NotchContext_HideUntilHover_Click">
+                            <MenuItem.Header>
+                                <TextBlock Text="Hide Notch (Until Next Hover/Click)" Style="{StaticResource TrayMenuItemText}"/>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <Separator Style="{StaticResource TraySeparatorStyle}"/>
+                        <MenuItem Style="{StaticResource TrayMenuItemStyle}"
+                                  Icon="{StaticResource TrayExitIconGeometry}"
+                                  Tag="danger"
+                                  Click="NotchContext_ExitApp_Click">
+                            <MenuItem.Header>
+                                <TextBlock Text="Exit Application" Style="{StaticResource TrayMenuItemText}"/>
+                            </MenuItem.Header>
+                        </MenuItem>
+                    </ContextMenu>
+                </Grid.ContextMenu>
                 <Grid.RenderTransform>
                     <TransformGroup>
                         <ScaleTransform x:Name="NotchScale" ScaleX="1" ScaleY="1"/>
@@ -796,15 +830,15 @@
                         <Border x:Name="AnimationThumbnailBorder"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Top"
-                                Width="22" Height="22"
-                                CornerRadius="12"
+                                Width="26" Height="26"
+                                CornerRadius="6"
                                 Background="Transparent"
                                 BorderBrush="Transparent"
                                 BorderThickness="0"
                                 ClipToBounds="False"
                                 Visibility="Collapsed"
                                 IsHitTestVisible="False"
-                                Margin="8,4,0,0"
+                                Margin="8,3,0,0"
                                 Panel.ZIndex="100">
                             <Border.RenderTransform>
                                 <TranslateTransform x:Name="AnimationThumbnailTranslate" X="0" Y="0"/>
@@ -812,7 +846,7 @@
                             <Grid ClipToBounds="False">
                                 <Grid ClipToBounds="True">
                                     <Grid.Clip>
-                                        <RectangleGeometry x:Name="AnimationThumbnailClip" RadiusX="12" RadiusY="12" Rect="0,0,22,22"/>
+                                        <RectangleGeometry x:Name="AnimationThumbnailClip" RadiusX="6" RadiusY="6" Rect="0,0,26,26"/>
                                     </Grid.Clip>
                                     <Image x:Name="AnimationThumbnailImage"
                                            Stretch="UniformToFill"
@@ -821,7 +855,7 @@
                                     <Border x:Name="AnimationThumbnailRim"
                                             BorderThickness="0"
                                             BorderBrush="Transparent"
-                                            CornerRadius="12"
+                                            CornerRadius="6"
                                             IsHitTestVisible="False"/>
 
                                 </Grid>
@@ -1001,14 +1035,35 @@
                         </StackPanel>
                     </Grid>
 
-                    <StackPanel x:Name="CollapsedContent"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center">
-                        <StackPanel.Effect>
+                    <Grid x:Name="CollapsedContent"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          Visibility="Visible">
+                        <Grid.Effect>
                             <BlurEffect x:Name="CollapsedContentBlur" Radius="0" RenderingBias="Performance"/>
-                        </StackPanel.Effect>
-                    </StackPanel>
+                        </Grid.Effect>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock x:Name="StandbyClockText"
+                                       Text="12:00"
+                                       FontSize="12.5"
+                                       FontWeight="SemiBold"
+                                       FontFamily="{StaticResource MainSystemFont}"
+                                       Foreground="#EEFFFFFF"
+                                       VerticalAlignment="Center"/>
+                            <ctrl:ActionBorder x:Name="StandbyMicBadge"
+                                               Width="16" Height="16"
+                                               CornerRadius="8"
+                                               Background="#E5FF3B30"
+                                               Margin="6,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Visibility="Collapsed"
+                                               Cursor="Hand"
+                                               ToolTip="Microphone is Muted - Click to Unmute"
+                                               Click="MicMutedBadge_Click">
+                                <TextBlock Text="🔇" FontSize="8.5" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-0.5,0,0"/>
+                            </ctrl:ActionBorder>
+                        </StackPanel>
+                    </Grid>
 
                     <StackPanel x:Name="PrivacyIndicatorPanel"
                                 Orientation="Horizontal"
@@ -1032,20 +1087,6 @@
                             </Border.RenderTransform>
                         </Border>
                     </StackPanel>
-
-                    <ctrl:ActionBorder x:Name="MicMutedBadge"
-                                       Width="14" Height="14"
-                                       CornerRadius="7"
-                                       Background="#E5FF3B30"
-                                       Margin="0,9,38,0"
-                                       VerticalAlignment="Top"
-                                       HorizontalAlignment="Right"
-                                       Visibility="Collapsed"
-                                       Cursor="Hand"
-                                       ToolTip="Microphone is Muted - Click to Unmute"
-                                       Click="MicMutedBadge_Click">
-                        <TextBlock Text="🔇" FontSize="8" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-0.5,0,0"/>
-                    </ctrl:ActionBorder>
 
                     <Grid x:Name="BluetoothNotification"
                           Opacity="0"
@@ -1318,8 +1359,11 @@
                           Opacity="0"
                           Visibility="Collapsed"
                           HorizontalAlignment="Stretch"
-                          VerticalAlignment="Top"
-                          Margin="8,4"
+                          VerticalAlignment="Center"
+                          Margin="8,0"
+                          UseLayoutRounding="True"
+                          SnapsToDevicePixels="True"
+                          RenderOptions.BitmapScalingMode="HighQuality"
                           RenderOptions.ClearTypeHint="Enabled">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -1329,13 +1373,16 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
+                        <!-- Column 0: Thumbnail or Action Icon -->
                         <Border x:Name="CompactThumbnailBorder"
                                 Grid.Row="0"
                                 Grid.Column="0"
-                                Width="22" Height="22"
+                                Width="26" Height="26"
                                 CornerRadius="6"
+                                Margin="0,0,10,0"
                                 Background="Transparent"
                                 BorderBrush="Transparent"
                                 BorderThickness="0"
@@ -1350,18 +1397,17 @@
                                 <BlurEffect x:Name="MusicCompactContentBlur" Radius="0" RenderingBias="Performance"/>
                             </Border.Effect>
                             <Border.RenderTransform>
-
                                 <ScaleTransform x:Name="CompactThumbnailScale" ScaleX="1" ScaleY="1"/>
                             </Border.RenderTransform>
 
                             <Grid ClipToBounds="False">
-                                <Grid Width="22" Height="22" ClipToBounds="True">
+                                <Grid Width="26" Height="26" ClipToBounds="True">
                                     <Grid.Clip>
-                                        <RectangleGeometry x:Name="CompactThumbnailClip" RadiusX="6" RadiusY="6" Rect="0,0,22,22"/>
+                                        <RectangleGeometry x:Name="CompactThumbnailClip" RadiusX="6" RadiusY="6" Rect="0,0,26,26"/>
                                     </Grid.Clip>
                                     <Image x:Name="CompactThumbnail"
-                                           Width="22"
-                                           Height="22"
+                                           Width="26"
+                                           Height="26"
                                            Stretch="UniformToFill"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
@@ -1374,8 +1420,8 @@
                                         </Image.Effect>
                                     </Image>
                                     <Image x:Name="CompactThumbnailNext"
-                                           Width="22"
-                                           Height="22"
+                                           Width="26"
+                                           Height="26"
                                            Stretch="UniformToFill"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
@@ -1396,53 +1442,277 @@
                                             CornerRadius="6"
                                             IsHitTestVisible="False"/>
                                     <ctrl:SessionUnlockFeedback x:Name="CompactUnlockFeedback"/>
-
                                 </Grid>
                                 <ctrl:MediaPinBadge x:Name="CompactMediaPin"/>
                             </Grid>
                         </Border>
 
-                        <Grid x:Name="CompactLyricsHost"
-                              Grid.Row="0" Grid.Column="1"
-                              VerticalAlignment="Center"
-                              Margin="6,0,6,0"
-                              ClipToBounds="True">
-                            <TextBlock x:Name="CompactLyricText"
-                                       Text=""
-                                       FontSize="11.5"
-                                       FontWeight="SemiBold"
-                                       FontFamily="{StaticResource MainSystemFont}"
-                                       Foreground="#F2FFFFFF"
-                                       TextTrimming="CharacterEllipsis"
-                                       TextAlignment="Center"
+                        <Border x:Name="CompactActionIconBorder"
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Width="26" Height="26"
+                                CornerRadius="6"
+                                Background="#33FFFFFF"
+                                Margin="0,0,10,0"
+                                Visibility="Collapsed"
+                                VerticalAlignment="Center">
+                            <TextBlock x:Name="CompactActionIconText"
+                                       Text="🔊"
+                                       FontSize="13"
+                                       Foreground="#FFFFFF"
                                        HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       Opacity="0">
-                                <TextBlock.RenderTransform>
-                                    <TranslateTransform x:Name="CompactLyricTranslate" Y="0"/>
-                                </TextBlock.RenderTransform>
-                            </TextBlock>
-                            <TextBlock x:Name="CompactTrackFallbackText"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- Column 1: Main Text / Action Center Area (Exclusive) -->
+                        <Grid x:Name="CompactCenterHost"
+                              Grid.Row="0"
+                              Grid.Column="1"
+                              VerticalAlignment="Center"
+                              Margin="0,0,12,0"
+                              ClipToBounds="True">
+
+                            <!-- Priority 2: Synced Lyrics & Fallback Track Title -->
+                            <Grid x:Name="CompactLyricsHost"
+                                  VerticalAlignment="Center"
+                                  ClipToBounds="True">
+                                <TextBlock x:Name="CompactLyricText"
+                                           Text=""
+                                           FontSize="11.5"
+                                           FontWeight="SemiBold"
+                                           FontFamily="{StaticResource MainSystemFont}"
+                                           Foreground="#F2FFFFFF"
+                                           TextTrimming="CharacterEllipsis"
+                                           TextAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Opacity="0">
+                                    <TextBlock.RenderTransform>
+                                        <TranslateTransform x:Name="CompactLyricTranslate" Y="0"/>
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                                <TextBlock x:Name="CompactTrackFallbackText"
+                                           Text=""
+                                           FontSize="11"
+                                           FontWeight="Medium"
+                                           FontFamily="{StaticResource MainSystemFont}"
+                                           Foreground="#B3FFFFFF"
+                                           TextTrimming="CharacterEllipsis"
+                                           TextAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Opacity="1">
+                                    <TextBlock.RenderTransform>
+                                        <TranslateTransform x:Name="CompactTrackFallbackTranslate" Y="0"/>
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                            </Grid>
+
+                            <!-- Priority 1: Volume OSD In Center -->
+                            <Grid x:Name="CompactVolumeOsd"
+                                  VerticalAlignment="Center"
+                                  Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="CompactVolumeTrack"
+                                        Grid.Column="0"
+                                        Background="#33FFFFFF"
+                                        CornerRadius="3"
+                                        Height="6"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,8,0">
+                                    <Border x:Name="CompactVolumeFill"
+                                            HorizontalAlignment="Left"
+                                            CornerRadius="3"
+                                            Height="6"
+                                            Background="#EEFFFFFF"/>
+                                </Border>
+                                <TextBlock x:Name="CompactVolumePercentText"
+                                           Grid.Column="1"
+                                           Text="0%"
+                                           Width="42"
+                                           TextAlignment="Right"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           FontFamily="{StaticResource MainSystemFont}"
+                                           Foreground="#EEFFFFFF"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Priority 1: Generic Transient Action Text (Alerts) -->
+                            <TextBlock x:Name="CompactActionText"
                                        Text=""
                                        FontSize="11"
-                                       FontWeight="Medium"
+                                       FontWeight="SemiBold"
                                        FontFamily="{StaticResource MainSystemFont}"
-                                       Foreground="#B3FFFFFF"
+                                       Foreground="#EEFFFFFF"
                                        TextTrimming="CharacterEllipsis"
                                        TextAlignment="Center"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
-                                       Opacity="1">
+                                       Visibility="Collapsed">
                                 <TextBlock.RenderTransform>
-                                    <TranslateTransform x:Name="CompactTrackFallbackTranslate" Y="0"/>
+                                    <TranslateTransform x:Name="CompactActionTranslate" X="0" Y="0"/>
                                 </TextBlock.RenderTransform>
                             </TextBlock>
+
+                            <!-- Priority 1: Rich Clipboard Copied OSD (3 Columns) -->
+                            <Grid x:Name="CompactCopiedHost"
+                                  VerticalAlignment="Center"
+                                  HorizontalAlignment="Center"
+                                  Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Column 0: Soft Green Badge 24x24 -->
+                                <Border Grid.Column="0"
+                                        Width="24" Height="24"
+                                        CornerRadius="12"
+                                        Background="#2622C55E"
+                                        BorderBrush="#4D22C55E"
+                                        BorderThickness="1"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,8,0">
+                                    <TextBlock Text="✓"
+                                               FontSize="12"
+                                               FontWeight="Bold"
+                                               Foreground="#22C55E"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Margin="0,-1,0,0"/>
+                                </Border>
+
+                                <!-- Column 1: Copied • "Snippet" -->
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="Copied"
+                                               FontSize="12.5"
+                                               FontWeight="Bold"
+                                               Foreground="#FFFFFF"
+                                               FontFamily="{StaticResource MainSystemFont}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="CompactCopiedSeparator"
+                                               Text=" • "
+                                               FontSize="12.5"
+                                               FontWeight="SemiBold"
+                                               Foreground="#80FFFFFF"
+                                               FontFamily="{StaticResource MainSystemFont}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="CompactCopiedSnippet"
+                                               Text=""
+                                               FontSize="11.5"
+                                               FontWeight="Normal"
+                                               Foreground="#B0B0B0"
+                                               FontFamily="{StaticResource MainSystemFont}"
+                                               MaxWidth="180"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Column 2: Status checkmark -->
+                                <Border Grid.Column="2"
+                                        VerticalAlignment="Center"
+                                        Margin="10,0,0,0">
+                                    <TextBlock Text="✓"
+                                               FontSize="12"
+                                               FontWeight="Bold"
+                                               Foreground="#8022C55E"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+
+                            <!-- Legacy/Compatibility element -->
+                            <TextBlock x:Name="ClipboardCopiedText"
+                                       Text="Copied"
+                                       Visibility="Collapsed"
+                                       IsHitTestVisible="False"/>
+
+                            <!-- Priority 1: Incoming App Toast Notification (Discord / WA) -->
+                            <StackPanel x:Name="CompactToastHost"
+                                        Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Visibility="Collapsed">
+                                <TextBlock x:Name="CompactToastApp"
+                                           Text="Discord"
+                                           FontWeight="Bold"
+                                           FontSize="11"
+                                           Foreground="{x:Static svc:UiPalette.PrimaryBrush}"
+                                           Margin="0,0,4,0"/>
+                                <TextBlock Text=":" Foreground="#80FFFFFF" FontSize="11" Margin="0,0,4,0"/>
+                                <TextBlock x:Name="CompactToastMsg"
+                                           Text="New message"
+                                           FontSize="11"
+                                           Foreground="#CCFFFFFF"
+                                           MaxWidth="180"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
                         </Grid>
 
+                        <!-- Column 2: Status Indicator (Mic Muted Badge / Privacy) -->
+                        <StackPanel x:Name="CompactStatusPanel"
+                                    Grid.Row="0"
+                                    Grid.Column="2"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,8,0">
+                            <ctrl:ActionBorder x:Name="MicMutedBadge"
+                                               Width="20" Height="20"
+                                               CornerRadius="10"
+                                               Background="#E5FF3B30"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Center"
+                                               Visibility="Collapsed"
+                                               Cursor="Hand"
+                                               ToolTip="Microphone is Muted - Click to Unmute"
+                                               Click="MicMutedBadge_Click">
+                                <TextBlock Text="🔇" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-0.5,0,0"/>
+                            </ctrl:ActionBorder>
+                        </StackPanel>
+
+                        <!-- Column 3: Waveform Visualizer or Action Feedback Checkmark -->
+                        <Grid Grid.Row="0" Grid.Column="3" VerticalAlignment="Center">
+                            <ctrl:MusicVisualizer x:Name="MusicViz"
+                                                  Width="20" Height="17"
+                                                  VerticalAlignment="Center"
+                                                  ActiveBrush="{StaticResource MusicVisualizerBrush}">
+                                <ctrl:MusicVisualizer.Effect>
+                                    <BlurEffect Radius="1.6" RenderingBias="Performance"/>
+                                </ctrl:MusicVisualizer.Effect>
+                            </ctrl:MusicVisualizer>
+
+                            <Canvas x:Name="ClipboardCheckIcon"
+                                    Width="16" Height="16"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Opacity="0"
+                                    Visibility="Collapsed"
+                                    IsHitTestVisible="False"
+                                    RenderTransformOrigin="0.5,0.5">
+                                <Canvas.RenderTransform>
+                                    <TransformGroup>
+                                        <ScaleTransform x:Name="ClipboardCheckScale" ScaleX="0.5" ScaleY="0.5"/>
+                                    </TransformGroup>
+                                </Canvas.RenderTransform>
+                                <Path Data="M2.5,8.5 L6,12 L13.5,4.5"
+                                      Stroke="{x:Static svc:UiPalette.IconBrush}" StrokeThickness="2.2"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Fill="Transparent"/>
+                            </Canvas>
+                        </Grid>
+
+                        <!-- Row 1: Hover info -->
                         <Grid x:Name="CompactHoverInfo"
                               Grid.Row="1"
                               Grid.Column="0"
-                              Grid.ColumnSpan="3"
+                              Grid.ColumnSpan="4"
                               Opacity="0"
                               Visibility="Collapsed"
                               VerticalAlignment="Bottom"
@@ -1473,64 +1743,6 @@
                                 </TextBlock>
                             </Canvas>
                         </Grid>
-
-                        <ctrl:MusicVisualizer x:Name="MusicViz"
-                                              Grid.Row="0" Grid.Column="2"
-                                              Width="20" Height="17"
-                                              Margin="0,2.5,-4,0"
-                                              VerticalAlignment="Top"
-                                              ActiveBrush="{StaticResource MusicVisualizerBrush}">
-                            <ctrl:MusicVisualizer.Effect>
-                                <BlurEffect Radius="1.6" RenderingBias="Performance"/>
-                            </ctrl:MusicVisualizer.Effect>
-                        </ctrl:MusicVisualizer>
-
-                        <Canvas x:Name="ClipboardCheckIcon"
-                                Grid.Row="0" Grid.Column="2"
-                                Width="16" Height="16"
-                                Margin="2,4,-2,0"
-                                VerticalAlignment="Center"
-                                HorizontalAlignment="Center"
-                                Opacity="0"
-                                Visibility="Collapsed"
-                                IsHitTestVisible="False"
-                                RenderTransformOrigin="0.5,0.5">
-                            <Canvas.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform x:Name="ClipboardCheckScale" ScaleX="0.5" ScaleY="0.5"/>
-                                </TransformGroup>
-                            </Canvas.RenderTransform>
-                            <Path Data="M2.5,8.5 L6,12 L13.5,4.5"
-                                  Stroke="{x:Static svc:UiPalette.IconBrush}" StrokeThickness="2.2"
-                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                  StrokeLineJoin="Round"
-                                  Fill="Transparent"/>
-                        </Canvas>
-
-                        <TextBlock TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" x:Name="ClipboardCopiedText"
-                                   Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                                   Text="Copied"
-                                   Foreground="{x:Static svc:UiPalette.PrimaryBrush}"
-                                   FontSize="11"
-                                   FontWeight="SemiBold"
-                                   FontFamily="{StaticResource MainSystemFont}"
-                                   TextOptions.TextFormattingMode="Ideal"
-                                   TextOptions.TextRenderingMode="ClearType"
-                                   TextOptions.TextHintingMode="Fixed"
-                                   UseLayoutRounding="True"
-                                   SnapsToDevicePixels="True"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Left"
-                                   Margin="0,4,0,0"
-                                   Opacity="0"
-                                   Visibility="Collapsed"
-                                   IsHitTestVisible="False"
-                                   RenderTransformOrigin="0,0.5">
-                            <TextBlock.RenderTransform>
-                                <TranslateTransform x:Name="ClipboardCopiedTranslate" X="-8"/>
-                            </TextBlock.RenderTransform>
-                        </TextBlock>
-
                     </Grid>
 
                     <Grid x:Name="ExpandedContent"
@@ -1696,13 +1908,14 @@
                                     Background="Transparent"
                                     Cursor="Hand"
                                     Margin="7,0,0,0"
+                                    PreviewMouseLeftButtonDown="Settings_Click"
                                     Click="Settings_Click"
                                     PreviewMouseRightButtonDown="SettingsButton_PreviewMouseRightButtonDown"
                                     MouseRightButtonDown="SettingsButton_PreviewMouseRightButtonDown"
                                     MouseEnter="SettingsButton_MouseEnter"
                                     MouseLeave="SettingsButton_MouseLeave"
                                     RenderTransformOrigin="0.5,0.5"
-                                    Opacity="0"
+                                    Opacity="1"
                                     Visibility="Visible"
                                     IsHitTestVisible="True">
                                 <Border.RenderTransform>
@@ -1858,7 +2071,7 @@
                             <Border x:Name="MediaWidget"
                                     Background="{StaticResource CardGradient}"
                                     CornerRadius="16"
-                                    Padding="16,14,16,14"
+                                    Padding="12,12,6,4"
                                     RenderOptions.ClearTypeHint="Enabled">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -1880,7 +2093,7 @@
                                             VerticalAlignment="Center"
                                             CornerRadius="14"
                                             Background="Transparent"
-                                            Margin="0,0,14,0"
+                                            Margin="0,0,8,0"
                                             Cursor="Hand"
                                             MouseLeftButtonDown="ThumbnailBorder_MouseLeftButtonDown"
                                             MouseRightButtonUp="Thumbnail_MouseRightButtonUp"
