@@ -313,3 +313,22 @@ Dokumentasi ini mencatat secara rinci riwayat bug kritis, akar penyebab (*root c
   2. **Targeted Play/Pause:** Di `MediaTransportControlService.cs`, tombol Play/Pause menembak langsung method `session.TryPauseAsync()` / `session.TryPlayAsync()` pada objek sesi yang aktif, tanpa menembakkan tombol keyboard global ke window lain.
   3. **Tombol Switch Media Source:** Menambahkan tombol `⇄ Switch Media` di Expanded View (`MediaPlaybackView.xaml`) untuk memungkinkan pengguna berpindah kendali antar-sesi secara instan ketika ada lebih dari 1 sesi media yang berjalan.
   - File terkait: `Services/MediaDetectionService.cs`, `Services/IMediaDetectionService.cs`, `Services/MediaTransportControlService.cs`, `Controls/MediaPlaybackView.xaml`, `Controls/MediaPlaybackView.xaml.cs`.
+
+---
+
+## 22. Eliminasi Total Jitter Idle, Kompensasi Offset Ruang Hitam Simetris & Standby Clock 10s
+- **Gejala:**
+  1. Kapsul notch kedut-kedut (bergetar/melompat) sendiri saat diam padahal pengguna tidak sedang melakukan apa-apa.
+  2. Logo di dalam notch mentok ke dasar bawah kapsul tanpa ruang hitam di bawahnya.
+  3. Bar volume menciut menjadi garis 1px (`|`).
+- **Akar Masalah:**
+  1. `AnimateContentCenterPop` (animasi scale 0.92 $\to$ 1.0) dipanggil berulang kali setiap kali timer heartbeat (500ms) atau volume berfluktuasi sedikit (noise < 1%), memicu puluhan animasi scale dan width saat idle.
+  2. Bagian atas NotchBorder menempel ke bezel layar monitor, sehingga secara optik jika konten disetel di tengah geometris, logo tampak melorot ke dasar bawah.
+  3. `CompactVolumeTrack` berada di kolom Grid `Auto` tanpa properti `Width` eksplisit, sehingga `ActualWidth` bernilai 0 dan kalkulasi pengisi volume menciut menjadi 1px.
+- **Solusi Kode:**
+  1. **Hapus Total `AnimateContentCenterPop`:** Menghilangkan pemicu scale transform berulang pada update UI.
+  2. **Filter Volume Noise:** Pada `MainWindow.Controls.cs`, hanya tampilkan Volume OSD jika persentase bulat volume (`int`) berubah minimal 1% (`newVolumeInt != _lastVolumeInt`) atau status mute berubah, dan abaikan event inisialisasi pertama saat startup.
+  3. **Kompensasi Offset Simetris:** Memberikan `Margin="14,0,14,4"` pada `MusicCompactContent` dan `Margin="0,0,0,4"` pada `CollapsedContent` sehingga jarak ruang hitam di atas dan di bawah kotak logo dan teks benar-benar seimbang dan presisi di layar.
+  4. **Fixed Width Volume Bar (100px):** Menyetel `Width="100"` pada `CompactVolumeTrack` sehingga bar volume selalu berukuran 100px proporsional tanpa pernah menciut.
+  5. **Standby Clock 10 Detik:** Jika media di-pause selama 10 detik tanpa ada aktivitas pengguna, notch secara otomatis beralih ke Mode Standby Jam (`HH:mm`), dan langsung beralih kembali saat lagu di-play atau tombol ditekan.
+  - File terkait: `Windows/MainWindow.xaml`, `Windows/MainWindow.Controls.cs`, `Windows/MainWindow.CompactPill.cs`, `Services/VolumeService.cs`, `Services/MediaDetectionService.cs`.

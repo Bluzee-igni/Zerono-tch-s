@@ -400,9 +400,7 @@ public partial class MainWindow
 
         if (CompactVolumeFill != null)
         {
-            double trackW = CompactVolumeTrack?.ActualWidth ?? 0;
-            if (trackW <= 0) trackW = 160;
-            double fillW = Math.Max(0, Math.Min(1.0, isMuted ? 0 : volume)) * trackW;
+            double fillW = Math.Max(0, Math.Min(1.0, isMuted ? 0 : volume)) * 100.0;
             CompactVolumeFill.Width = fillW;
         }
 
@@ -412,18 +410,44 @@ public partial class MainWindow
         SetTransientAction(CompactTransientAction.Volume, TimeSpan.FromMilliseconds(1500));
     }
 
+    private int _lastVolumeInt = -1;
+    private bool? _lastMuteState = null;
+    private bool _hasReceivedInitialVolume = false;
+
     public void OnHardwareVolumeChanged(float volume, bool isMuted)
     {
         if (_cleanedUp) return;
         Dispatcher.BeginInvoke(() =>
         {
+            int newVolumeInt = (int)Math.Round(volume * 100);
             _currentVolume = volume;
-            ShowVolumeIndicator(volume, isMuted);
+
             if (_isExpanded)
             {
                 SetVolumeFill(VolumeBarScale, isMuted ? 0 : volume, animate: true);
                 UpdateVolumeIcon(volume, isMuted);
             }
+
+            if (!_hasReceivedInitialVolume)
+            {
+                _hasReceivedInitialVolume = true;
+                _lastVolumeInt = newVolumeInt;
+                _lastMuteState = isMuted;
+                return;
+            }
+
+            bool volumeChanged = newVolumeInt != _lastVolumeInt;
+            bool muteChanged = isMuted != _lastMuteState;
+
+            if (!volumeChanged && !muteChanged)
+            {
+                return;
+            }
+
+            _lastVolumeInt = newVolumeInt;
+            _lastMuteState = isMuted;
+
+            ShowVolumeIndicator(volume, isMuted);
         });
     }
 

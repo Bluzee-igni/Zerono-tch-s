@@ -574,8 +574,7 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
                 const ChangeTypes ForceRefreshMask = ChangeTypes.MediaProperties
                     | ChangeTypes.Playback
                     | ChangeTypes.SessionChanged
-                    | ChangeTypes.ForceRefresh
-                    | ChangeTypes.Heartbeat;
+                    | ChangeTypes.ForceRefresh;
                 bool forceRefresh = (types & ForceRefreshMask) != 0;
 
                 if ((types & ChangeTypes.SessionChanged) != 0)
@@ -599,11 +598,11 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
         {
             var interval = _currentMode switch
             {
-                DetectionMode.Idle => TimeSpan.FromMilliseconds(1000),
-                DetectionMode.AwaitingMetadata => TimeSpan.FromMilliseconds(500),
-                DetectionMode.EventDriven => TimeSpan.FromMilliseconds(500),
-                DetectionMode.ThrottledMedia => TimeSpan.FromMilliseconds(500),
-                _ => TimeSpan.FromMilliseconds(500)
+                DetectionMode.Idle => TimeSpan.FromSeconds(5),
+                DetectionMode.AwaitingMetadata => TimeSpan.FromSeconds(3),
+                DetectionMode.EventDriven => TimeSpan.FromSeconds(3),
+                DetectionMode.ThrottledMedia => TimeSpan.FromMilliseconds(1500),
+                _ => TimeSpan.FromSeconds(3)
             };
 
             try

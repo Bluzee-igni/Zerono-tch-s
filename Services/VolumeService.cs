@@ -26,7 +26,6 @@ public sealed class VolumeService : IVolumeService
     private int _deviceVersion;
     private int _endpointVersion;
     private bool _disposed;
-    private readonly System.Threading.Timer? _pollTimer;
     private float _lastPolledVolume = -1f;
     private bool _lastPolledMute;
 
@@ -47,28 +46,6 @@ public sealed class VolumeService : IVolumeService
         _source = source;
         _source.DefaultDeviceChanged += OnDefaultDeviceChanged;
         RefreshDefaultDevice();
-        _pollTimer = new System.Threading.Timer(PollVolumeTick, null, 100, 100);
-    }
-
-    private void PollVolumeTick(object? state)
-    {
-        if (_disposed) return;
-        try
-        {
-            lock (_sync)
-            {
-                if (!EnsureInitializedLocked() || _endpoint == null) return;
-                float currentVol = _endpoint.Volume;
-                bool currentMute = _endpoint.IsMuted;
-                if (Math.Abs(currentVol - _lastPolledVolume) > 0.005f || currentMute != _lastPolledMute)
-                {
-                    _lastPolledVolume = currentVol;
-                    _lastPolledMute = currentMute;
-                    VolumeChanged?.Invoke(currentVol, currentMute);
-                }
-            }
-        }
-        catch { }
     }
 
     private void OnDefaultDeviceChanged() => Interlocked.Increment(ref _deviceVersion);
@@ -178,7 +155,6 @@ public sealed class VolumeService : IVolumeService
         {
             if (_disposed) return;
             _disposed = true;
-            _pollTimer?.Dispose();
             _source.DefaultDeviceChanged -= OnDefaultDeviceChanged;
             ReleaseEndpointLocked();
             _source.Dispose();

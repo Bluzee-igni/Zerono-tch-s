@@ -273,7 +273,8 @@ public partial class MainWindow
             }
         }
 
-        if ((DateTime.UtcNow - _lastMediaActionTime).TotalMilliseconds > 1200 && _isPlaying != info.IsPlaying)
+        bool playStateChanged = _isPlaying != info.IsPlaying;
+        if ((DateTime.UtcNow - _lastMediaActionTime).TotalMilliseconds > 1200 && playStateChanged)
         {
             _isPlaying = info.IsPlaying;
             UpdatePlayPauseIcon();
@@ -285,7 +286,8 @@ public partial class MainWindow
         MusicViz.TrackId = info?.GetSignature() ?? "";
         MusicViz.IsPlaying = info?.IsPlaying ?? false;
 
-        if (!_isTransientOsdActive)
+        bool shouldEvaluate = result.IsNewTrack || playStateChanged || result.SourceChanged;
+        if (shouldEvaluate && !_isTransientOsdActive)
         {
             EvaluateAndRestoreNotchState();
         }

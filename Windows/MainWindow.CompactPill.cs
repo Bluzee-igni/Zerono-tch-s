@@ -99,25 +99,15 @@ public partial class MainWindow
         }
     }
 
-    private void AnimateContentCenterPop()
-    {
-        if (CompactContentScale != null)
-        {
-            var scaleAnim = new DoubleAnimation(0.92, 1.0, TimeSpan.FromMilliseconds(220))
-            {
-                EasingFunction = _cubicEaseOut
-            };
-            Timeline.SetDesiredFrameRate(scaleAnim, AnimationConfig.TargetFps);
-            CompactContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
-            CompactContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
-        }
-    }
+    private CompactContentType _currentCompactContentType = CompactContentType.StandbyClock;
+    private UiScheduledTimer? _pausedMediaIdleTimer;
 
     public void SetCompactModeContent(CompactContentType type)
     {
         if (_isExpanded) return;
 
         bool isMicMuted = _micMonitorService?.IsMuted ?? false;
+        _currentCompactContentType = type;
 
         if (type == CompactContentType.StandbyClock)
         {
@@ -251,7 +241,6 @@ public partial class MainWindow
                 double maxScreenWidth = Math.Max(750, SystemParameters.PrimaryScreenWidth * 0.70);
                 targetActiveW = Math.Max(_collapsedWidth, Math.Min(maxScreenWidth, requiredWidth));
             }
-            AnimateContentCenterPop();
             TransitionToCompactSize(targetActiveW, _collapsedHeight);
             return;
         }
@@ -311,7 +300,6 @@ public partial class MainWindow
                 break;
         }
 
-        AnimateContentCenterPop();
         TransitionToCompactSize(targetOsdWidth, CompactActiveHeight);
     }
 
@@ -324,6 +312,11 @@ public partial class MainWindow
 
         double currentH = NotchBorder.ActualHeight > 0 ? NotchBorder.ActualHeight : NotchBorder.Height;
         if (double.IsNaN(currentH) || currentH <= 0) currentH = targetHeight;
+
+        if (Math.Abs(currentW - targetWidth) < 0.5 && Math.Abs(currentH - targetHeight) < 0.5)
+        {
+            return;
+        }
 
         if (Math.Abs(currentW - targetWidth) > 0.5)
         {
@@ -389,15 +382,43 @@ public partial class MainWindow
         _isTransientOsdActive = false;
         _activeTransientAction = CompactTransientAction.None;
 
-        bool hasActiveMedia = _isMusicCompactMode && _currentMediaInfo != null &&
-            (_currentMediaInfo.IsPlaying || !string.IsNullOrWhiteSpace(_currentMediaInfo.CurrentTrack));
+        bool hasMedia = _isMusicCompactMode && _currentMediaInfo != null && !string.IsNullOrWhiteSpace(_currentMediaInfo.CurrentTrack);
+        bool isPlaying = hasMedia && _currentMediaInfo!.IsPlaying;
 
-        if (hasActiveMedia)
+        if (isPlaying)
         {
+            _pausedMediaIdleTimer?.Stop();
             SetCompactModeContent(CompactContentType.MediaLyrics);
+        }
+        else if (hasMedia)
+        {
+            if (_pausedMediaIdleTimer == null)
+            {
+                _pausedMediaIdleTimer = new UiScheduledTimer { Interval = TimeSpan.FromSeconds(10) };
+                _pausedMediaIdleTimer.Tick += (s, e) =>
+                {
+                    _pausedMediaIdleTimer?.Stop();
+                    if (_isExpanded || _isTransientOsdActive) return;
+                    if (_currentMediaInfo?.IsPlaying != true)
+                    {
+                        SetCompactModeContent(CompactContentType.StandbyClock);
+                    }
+                };
+            }
+
+            if (!_pausedMediaIdleTimer.IsEnabled)
+            {
+                _pausedMediaIdleTimer.Start();
+            }
+
+            if (_currentCompactContentType != CompactContentType.StandbyClock)
+            {
+                SetCompactModeContent(CompactContentType.MediaLyrics);
+            }
         }
         else
         {
+            _pausedMediaIdleTimer?.Stop();
             SetCompactModeContent(CompactContentType.StandbyClock);
         }
     }
