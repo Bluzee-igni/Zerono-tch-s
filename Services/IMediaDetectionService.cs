@@ -42,6 +42,8 @@ public interface IMediaDetectionService : IDisposable
 
     Task SeekToAbsoluteAsync(TimeSpan position);
 
+    void DismissPausedSession() { }
+
     bool TryGetCurrentSessionVolume(out float volume, out bool isMuted);
 
     bool TrySetCurrentSessionVolume(float volume);

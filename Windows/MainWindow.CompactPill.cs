@@ -402,6 +402,7 @@ public partial class MainWindow
                     if (_currentMediaInfo?.IsPlaying != true)
                     {
                         SetCompactModeContent(CompactContentType.StandbyClock);
+                        _mediaService?.DismissPausedSession();
                     }
                 };
             }
@@ -415,11 +416,16 @@ public partial class MainWindow
             {
                 SetCompactModeContent(CompactContentType.MediaLyrics);
             }
+            else
+            {
+                _mediaService?.DismissPausedSession();
+            }
         }
         else
         {
             _pausedMediaIdleTimer?.Stop();
             SetCompactModeContent(CompactContentType.StandbyClock);
+            _mediaService?.DismissPausedSession();
         }
     }
 

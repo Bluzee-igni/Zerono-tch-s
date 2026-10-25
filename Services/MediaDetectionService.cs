@@ -93,6 +93,11 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
     private readonly MediaSourceCache _sourceCache;
     private string _latestPlayingSessionKey = "";
     private DateTime _latestPlayingSessionStartUtc = DateTime.MinValue;
+    private string _lastActivePlayingSessionId = "";
+    private DateTime _lastPlayTimestampUtc = DateTime.MinValue;
+    private bool _isDismissedPausedSession = false;
+    private DateTime _lastSessionSwitchUtc = DateTime.MinValue;
+    private string _lastObservedSessionKey = "";
 
     private DateTime _lastMetadataChangeTime = DateTime.MinValue;
     private string _lastTrackName = "";
@@ -2298,6 +2303,29 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
         return PlatformDetector.HasReliableWindowMatch(windowTitles, track, platform);
     }
 
+    private static string GetForegroundWindowTitle()
+    {
+        try
+        {
+            var hwnd = Win32Interop.GetForegroundWindow();
+            if (hwnd == IntPtr.Zero) return "";
+            int len = Win32Interop.GetWindowTextLength(hwnd);
+            if (len <= 0) return "";
+            var sb = new StringBuilder(len + 1);
+            Win32Interop.GetWindowText(hwnd, sb, sb.Capacity);
+            return sb.ToString();
+        }
+        catch { return ""; }
+    }
+
+    private static bool IsSocialMediaWindow(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return false;
+        return title.Contains("Instagram", StringComparison.OrdinalIgnoreCase) ||
+               title.Contains("TikTok", StringComparison.OrdinalIgnoreCase) ||
+               title.Contains("Reels", StringComparison.OrdinalIgnoreCase);
+    }
+
     private bool TryGetSessionSourceOverride(MediaInfo info, out string sessionOverride)
     {
         sessionOverride = string.Empty;
@@ -2448,9 +2476,49 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
             SwitchActiveDisplaySessionIfNeeded(session);
 
             var sessionSourceApp = session.SourceAppUserModelId ?? "";
-            info.IsAnyMediaPlaying = true;
+            bool isBrowserSession = IsBrowserSourceApp(sessionSourceApp) ||
+                                    sessionSourceApp.Contains("Chrome", StringComparison.OrdinalIgnoreCase) ||
+                                    sessionSourceApp.Contains("Edge", StringComparison.OrdinalIgnoreCase) ||
+                                    sessionSourceApp.Contains("msedge", StringComparison.OrdinalIgnoreCase) ||
+                                    sessionSourceApp.Contains("Firefox", StringComparison.OrdinalIgnoreCase);
+
+            string fgTitle = GetForegroundWindowTitle();
+            if (isBrowserSession && IsSocialMediaWindow(fgTitle))
+            {
+                return false;
+            }
+
+            var pbInfo = session.GetPlaybackInfo();
+            bool isPlaying = pbInfo != null && pbInfo.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+            string sessionKey = BuildSessionInstanceKey(session);
+
+            if (isPlaying)
+            {
+                _lastActivePlayingSessionId = sessionKey;
+                _lastPlayTimestampUtc = DateTime.UtcNow;
+                _isDismissedPausedSession = false;
+            }
+            else if (_isDismissedPausedSession)
+            {
+                return false;
+            }
+
+            if (_lastObservedSessionKey != sessionKey)
+            {
+                var now = DateTime.UtcNow;
+                if ((now - _lastSessionSwitchUtc).TotalMilliseconds < 1500 && !isPlaying)
+                {
+                    return false;
+                }
+                _lastSessionSwitchUtc = now;
+                _lastObservedSessionKey = sessionKey;
+            }
+
+            info.IsPlaying = isPlaying;
+            info.PlaybackRate = pbInfo?.PlaybackRate ?? 1.0;
+            info.IsAnyMediaPlaying = isPlaying;
             info.SourceAppId = sessionSourceApp;
-            info.SessionInstanceKey = BuildSessionInstanceKey(session);
+            info.SessionInstanceKey = sessionKey;
 
             ApplyMediaSourceFromAppId(info, sessionSourceApp);
 
@@ -2461,10 +2529,6 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
 
             RefineMediaSourceFromMetadata(info, sessionTitle.ToLower(), sessionArtist.ToLower(), lowerAlbum);
 
-            var pbInfo = session.GetPlaybackInfo();
-            info.IsPlaying = pbInfo != null && pbInfo.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
-            info.PlaybackRate = pbInfo?.PlaybackRate ?? 1.0;
-            info.IsAnyMediaPlaying = true;
             info.CurrentTrack = sessionTitle;
             info.CurrentArtist = sessionArtist;
 
@@ -3695,9 +3759,13 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
                 {
                     session = fallbackActiveSession;
                 }
-                else
+                else if (!_isDismissedPausedSession)
                 {
                     session = sessionManager.GetCurrentSession();
+                }
+                else
+                {
+                    session = null;
                 }
             }
         }
@@ -4170,6 +4238,11 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
         }
 
         return Task.CompletedTask;
+    }
+
+    public void DismissPausedSession()
+    {
+        _isDismissedPausedSession = true;
     }
 }
 

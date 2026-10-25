@@ -46,6 +46,7 @@ public sealed class FakeMediaDetectionService : IMediaDetectionService
 
     public void Start() => StartCount++;
     public void Stop() { }
+    public void DismissPausedSession() { }
 
     public Task PlayPauseAsync() { PlayPauseCount++; return Task.CompletedTask; }
     public Task NextTrackAsync() { NextTrackCount++; return Task.CompletedTask; }

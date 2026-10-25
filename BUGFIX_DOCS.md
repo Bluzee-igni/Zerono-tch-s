@@ -332,3 +332,20 @@ Dokumentasi ini mencatat secara rinci riwayat bug kritis, akar penyebab (*root c
   4. **Fixed Width Volume Bar (100px):** Menyetel `Width="100"` pada `CompactVolumeTrack` sehingga bar volume selalu berukuran 100px proporsional tanpa pernah menciut.
   5. **Standby Clock 10 Detik:** Jika media di-pause selama 10 detik tanpa ada aktivitas pengguna, notch secara otomatis beralih ke Mode Standby Jam (`HH:mm`), dan langsung beralih kembali saat lagu di-play atau tombol ditekan.
   - File terkait: `Windows/MainWindow.xaml`, `Windows/MainWindow.Controls.cs`, `Windows/MainWindow.CompactPill.cs`, `Services/VolumeService.cs`, `Services/MediaDetectionService.cs`.
+
+---
+
+## 23. Penanganan Konflik Tab Browser (Instagram Story / Web Lain) & Posisi Vertikal 100% Presisi
+- **Gejala:**
+  1. Saat pengguna mem-pause YouTube Music lalu membuka Instagram (misal menonton IG Story), notch menjadi bingung dan terus-menerus memunculkan kembali lagu YouTube Music yang sedang di-pause setiap kali slide story berganti/berhenti.
+  2. Posisi logo dan teks di Compact Notch secara visual masih agak condong ke bawah kapsul hitam (jarak hitam atas dan bawah belum benar-benar simetris).
+- **Akar Masalah:**
+  1. Instagram di browser mengeluarkan audio tetapi tidak memperbarui metadata SMTC. Akibatnya SMTC browser tetap menyimpan judul lagu YouTube Music lama. Setiap kali slide story berganti atau memicu audio, status sesi berkedip antara Playing/Paused, sehingga V-Notch salah mengira lagu YouTube Music sedang diputar lagi.
+  2. Ketika sesi YouTube Music di-pause dan notch sudah masuk ke Standby Clock, tidak ada penanda bahwa sesi paused tersebut sudah ditolak (*dismissed*). Akibatnya saat pemindaian SMTC fallback dijalankan, sesi paused tersebut diangkat kembali ke notch.
+  3. `ApplyDynamicIslandContentAlignment` di `MainWindow.xaml.cs` sebelumnya menimpa `MusicCompactContent.VerticalAlignment = VerticalAlignment.Top` dan `Margin = new Thickness(8, 4, 8, 4)`, mengabaikan kompensasi offset bawah di XAML.
+- **Solusi Kode:**
+  1. **Lacak Last Playing & Dismissed Paused Session:** Di `MediaDetectionService.cs`, saat sesi berpindah ke `Playing`, catat sebagai `_lastActivePlayingSessionId` dan reset `_isDismissedPausedSession = false`. Saat sesi di-pause dan notch masuk ke Standby Clock (atau ditutup), panggil `_mediaService.DismissPausedSession()`. Sesi yang berstatus Paused dan sudah di-dismiss **dilarang keras ditampilkan kembali ke notch** kecuali statusnya benar-benar berubah menjadi `Playing`!
+  2. **Deteksi Window Instagram / Media Sosial:** Menggunakan `Win32Interop.GetForegroundWindow` dan `GetWindowText`. Jika browser di foreground sedang membuka tab bertema media sosial (`Instagram`, `TikTok`, `Reels`), abaikan metadata lagu browser yang stale agar notch tidak terbangun oleh audio IG Story!
+  3. **Debounce Pergantian Sesi 1500ms:** Menahan perpindahan sesi cepat (< 1500ms) saat video slide story berganti-ganti cepat agar notch tidak berkedip.
+  4. **Presisi Posisi Vertikal Simetris:** Di `MainWindow.xaml` dan `ApplyDynamicIslandContentAlignment`, kunci `MusicCompactContent.Margin = new Thickness(14, 0, 14, 8)` dan `CollapsedContent.Margin = new Thickness(0, 0, 0, 8)` dengan `VerticalAlignment.Center`. Jarak ruang hitam di ATAS kotak logo 24x24 dan di BAWAH kotak logo 24x24 kini terukur sama persis di layar monitor.
+  - File terkait: `Services/MediaDetectionService.cs`, `Services/IMediaDetectionService.cs`, `Windows/MainWindow.CompactPill.cs`, `Windows/MainWindow.xaml.cs`, `Windows/MainWindow.xaml`.

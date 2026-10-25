@@ -2189,25 +2189,25 @@ public partial class MainWindow : Window
 
         if (MusicCompactContent != null)
         {
-            double islandTop = Math.Max(0, (GetCollapsedHeight() - 22) / 2.0);
-            MusicCompactContent.VerticalAlignment = VerticalAlignment.Top;
-            MusicCompactContent.Margin = islandMode ? new Thickness(12, islandTop, 12, 0) : new Thickness(8, 4, 8, 4);
+            MusicCompactContent.VerticalAlignment = VerticalAlignment.Center;
+            MusicCompactContent.Margin = islandMode ? new Thickness(14, 0, 14, 0) : new Thickness(14, 0, 14, 8);
         }
 
-        if (CompactHoverInfo != null)
+        if (CollapsedContent != null)
         {
-            CompactHoverInfo.Margin = islandMode ? new Thickness(0, 8, 0, 8) : new Thickness(-6, 14, -6, 8);
+            CollapsedContent.VerticalAlignment = VerticalAlignment.Center;
+            CollapsedContent.Margin = islandMode ? new Thickness(0, 0, 0, 0) : new Thickness(0, 0, 0, 8);
         }
 
         if (CompactThumbnailBorder != null)
         {
-            CompactThumbnailBorder.RenderTransformOrigin = islandMode ? new Point(0.5, 0.5) : new Point(0, 0);
+            CompactThumbnailBorder.RenderTransformOrigin = new Point(0.5, 0.5);
         }
 
         if (MusicViz != null)
         {
-            MusicViz.VerticalAlignment = islandMode ? VerticalAlignment.Center : VerticalAlignment.Top;
-            MusicViz.Margin = islandMode ? new Thickness(0, 0, -4, 0) : new Thickness(0, 2.5, -4, 0);
+            MusicViz.VerticalAlignment = VerticalAlignment.Center;
+            MusicViz.Margin = new Thickness(0);
         }
 
         if (_privacyIndicatorsVisible) UpdatePrivacyDotPosition();

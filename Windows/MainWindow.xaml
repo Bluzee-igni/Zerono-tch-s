@@ -1038,7 +1038,7 @@
                     <Grid x:Name="CollapsedContent"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Center"
-                          Margin="0,0,0,4"
+                          Margin="0,0,0,8"
                           Visibility="Visible">
                         <Grid.Effect>
                             <BlurEffect x:Name="CollapsedContentBlur" Radius="0" RenderingBias="Performance"/>
@@ -1364,7 +1364,7 @@
                           Visibility="Collapsed"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Center"
-                          Margin="14,0,14,4"
+                          Margin="14,0,14,8"
                           RenderTransformOrigin="0.5,0.5"
                           UseLayoutRounding="True"
                           SnapsToDevicePixels="True"
