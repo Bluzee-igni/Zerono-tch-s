@@ -123,18 +123,11 @@ public partial class MainWindow
                 CollapsedContent.Opacity = 1;
             }
 
-            if (StandbyClockText != null)
-            {
-                StandbyClockText.Text = DateTime.Now.ToString("HH:mm");
-            }
-
-            if (StandbyMicBadge != null)
-            {
-                StandbyMicBadge.Visibility = isMicMuted ? Visibility.Visible : Visibility.Collapsed;
-            }
+            UpdateStandbyClock();
 
             SuppressPrivacyDot();
-            TransitionToCompactSize(_collapsedWidth, _collapsedHeight);
+            double standbyWidth = isMicMuted ? 220.0 : 200.0;
+            TransitionToCompactSize(standbyWidth, _collapsedHeight);
             return;
         }
 

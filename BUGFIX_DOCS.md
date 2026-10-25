@@ -349,3 +349,23 @@ Dokumentasi ini mencatat secara rinci riwayat bug kritis, akar penyebab (*root c
   3. **Debounce Pergantian Sesi 1500ms:** Menahan perpindahan sesi cepat (< 1500ms) saat video slide story berganti-ganti cepat agar notch tidak berkedip.
   4. **Presisi Posisi Vertikal Simetris:** Di `MainWindow.xaml` dan `ApplyDynamicIslandContentAlignment`, kunci `MusicCompactContent.Margin = new Thickness(14, 0, 14, 8)` dan `CollapsedContent.Margin = new Thickness(0, 0, 0, 8)` dengan `VerticalAlignment.Center`. Jarak ruang hitam di ATAS kotak logo 24x24 dan di BAWAH kotak logo 24x24 kini terukur sama persis di layar monitor.
   - File terkait: `Services/MediaDetectionService.cs`, `Services/IMediaDetectionService.cs`, `Windows/MainWindow.CompactPill.cs`, `Windows/MainWindow.xaml.cs`, `Windows/MainWindow.xaml`.
+
+---
+
+## 24. Eliminasi Total Auto-Pause Background & Restorasi Active Idle Mode (Jam + Status Terlihat)
+- **Gejala:**
+  1. Pengguna sama sekali tidak bisa memutar media apa pun di laptop (YouTube Music, YouTube biasa, maupun Instagram). Setiap kali tombol Play ditekan, media langsung ter-pause/stop otomatis oleh V-Notch.
+  2. Saat kondisi idle di desktop tanpa memutar media, notch benar-benar menghilang (lenyap) dari layar.
+- **Akar Masalah:**
+  1. Di `MediaDetectionService.cs` (`OnPlaybackChanged`), terdapat perulangan otomatis `allSessions` yang memanggil `_ = other.TryPauseAsync()` setiap kali ada event playback. Perintah ini mengintervensi dan mematikan pemutar media browser pengguna di background.
+  2. `FullscreenAutoHideController.cs` mengklasifikasikan jendela yang di-maximize tanpa caption sebagai `WindowedFullscreen` dan menyetel `WindowedFullscreen => true`, sehingga saat berada di desktop atau membuka browser biasa, notch langsung menganggap dirinya berada di fullscreen dan menyembunyikan diri (`Visibility = Collapsed`, `Opacity = 0`).
+  3. `CollapsedContent` sebelumnya tidak diisi tanggal/baterai lengkap dan ukurannya tidak diatur proporsional saat beralih ke Standby.
+- **Solusi Kode:**
+  1. **HAPUS TOTAL `TryPauseAsync()` Otomatis:** Menghapus seluruh blok auto-pause di background. `MediaDetectionService` dijadikan **100% READ-ONLY (Pasif)** dan tidak pernah lagi mengirimkan perintah kontrol audio secara otomatis. Kontrol audio hanya boleh dipicu saat pengguna secara fisik mengklik tombol di UI.
+  2. **Nonaktifkan Hide pada Windowed Maximized:** Di `FullscreenAutoHideController.cs`, tetapkan `WindowedFullscreen => false`. Notch **HANYA** boleh bersembunyi saat benar-benar berada di `ExclusiveFullscreen` (game, YouTube Fullscreen F11). Di luar kondisi tersebut, notch **WAJIB TETAP TERLIHAT di layar**.
+  3. **Active Idle Mode (Jam + Tanggal/Baterai):** Saat tidak ada media yang berputar, `CollapsedContent` tetap berstatus `Visibility.Visible` dan `Opacity = 1.0` di tengah atas layar (`Margin="14,0,14,8"`):
+     - Jam Digital tegas Putih (`HH:mm`) real-time.
+     - Pemisah titik (`•`) + Hari/Tanggal (`Mon, 26 Oct`) dan status baterai (`⚡ 100%`) warna `#B0B0B0`.
+     - Ikon SVG merah `StandbyMicBadge` jika mic sedang mute.
+     - Kapsul berukuran proporsional (`Width="200–220"`).
+  - File terkait: `Services/MediaDetectionService.cs`, `Controllers/FullscreenAutoHideController.cs`, `Windows/MainWindow.CompactPill.cs`, `Windows/MainWindow.xaml`, `Windows/MainWindow.xaml.cs`.

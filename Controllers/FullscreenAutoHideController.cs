@@ -162,8 +162,8 @@ public sealed class FullscreenAutoHideController : IDisposable
 
     private bool ShouldHideForType(FullscreenType type) => type switch
     {
-        FullscreenType.ExclusiveFullscreen => true,
-        FullscreenType.WindowedFullscreen => true,
+        FullscreenType.ExclusiveFullscreen => _settings.AutoHideInFullscreen,
+        FullscreenType.WindowedFullscreen => false,
         _ => false
     };
 

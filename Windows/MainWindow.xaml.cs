@@ -2980,6 +2980,19 @@ public partial class MainWindow : Window
         {
             StandbyClockText.Text = DateTime.Now.ToString("HH:mm");
         }
+        if (StandbyDateOrBatteryText != null)
+        {
+            string dateStr = DateTime.Now.ToString("ddd, dd MMM", System.Globalization.CultureInfo.InvariantCulture);
+            string batteryText = _viewModel?.Secondary?.BatteryPercentText ?? "";
+            if (!string.IsNullOrWhiteSpace(batteryText))
+            {
+                StandbyDateOrBatteryText.Text = $"{dateStr} • ⚡ {batteryText}";
+            }
+            else
+            {
+                StandbyDateOrBatteryText.Text = dateStr;
+            }
+        }
         bool isMuted = _micMonitorService?.IsMuted ?? false;
         if (StandbyMicBadge != null)
         {

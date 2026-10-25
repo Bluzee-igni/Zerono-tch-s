@@ -134,7 +134,7 @@ public class NotchSettings
     public string NotchSizePreset { get; set; } = "Default";
 
     public bool HideOnExclusiveFullscreen { get; set; } = true;
-    public bool HideOnWindowedFullscreen { get; set; } = true;
+    public bool HideOnWindowedFullscreen { get; set; } = false;
 
     public bool EnableDebugMode { get; set; } = false;
     public double? DebugWindowX { get; set; }

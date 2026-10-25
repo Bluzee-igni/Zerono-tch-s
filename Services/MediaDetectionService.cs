@@ -506,7 +506,11 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
             var pb = sender.GetPlaybackInfo();
             if (pb != null)
             {
-                if (pb.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused)
+                if (pb.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                {
+                    _isDismissedPausedSession = false;
+                }
+                else if (pb.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused)
                 {
                     if (_lastPublishedInfo is { IsPlaying: true } last)
                     {
@@ -514,29 +518,6 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
                         fastPaused.IsPlaying = false;
                         fastPaused.LastUpdated = DateTimeOffset.Now;
                         _ = FireMediaChangedAsync(fastPaused);
-                    }
-                }
-                else if (pb.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
-                {
-                    var allSessions = _sessionManager?.GetSessions();
-                    if (allSessions != null)
-                    {
-                        foreach (var other in allSessions)
-                        {
-                            if (!AreSameSession(other, sender))
-                            {
-                                try
-                                {
-                                    var otherPb = other.GetPlaybackInfo();
-                                    if (otherPb != null && otherPb.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
-                                    {
-                                        RuntimeLog.Info("MEDIA-HANDOVER", $"Handover: pausing '{other.SourceAppUserModelId}'");
-                                        _ = other.TryPauseAsync();
-                                    }
-                                }
-                                catch { }
-                            }
-                        }
                     }
                 }
             }
