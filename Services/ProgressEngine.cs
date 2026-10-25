@@ -384,30 +384,11 @@ public class ProgressEngine
             pausedPos = predictedAtPending;
         }
 
-        if (!_pendingPauseConfirmation)
-        {
-            _pendingPauseConfirmation = true;
-            _pendingPauseStartedUtc = nowUtc;
-            _pendingPausePosition = pausedPos;
-
-            _isPlaying = false;
-            _basePosition = pausedPos;
-            _baseTimeUtc = nowUtc;
-            return true;
-        }
-
-        _pendingPausePosition = pausedPos;
+        _pendingPauseConfirmation = false;
+        _pendingPauseStartedUtc = DateTime.MinValue;
         _isPlaying = false;
         _basePosition = pausedPos;
         _baseTimeUtc = nowUtc;
-
-        var pendingAge = nowUtc - _pendingPauseStartedUtc;
-        if (pendingAge < PauseConfirmationWindow)
-        {
-            return true;
-        }
-
-        pausedPos = _pendingPausePosition;
         return false;
     }
 

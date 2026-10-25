@@ -860,7 +860,7 @@ public partial class MainWindow
             return;
 
         TimeSpan position;
-        if (_currentMediaInfo != null && _currentMediaInfo.IsPlaying && _currentMediaInfo.Duration.TotalSeconds > 0)
+        if (_currentMediaInfo != null && _currentMediaInfo.IsPlaying && _currentMediaInfo.Duration.TotalSeconds > 0 && _isPlaying)
         {
             var frame = _progressEngine.GetUiFrame();
             if (frame.Duration.TotalSeconds > 0 && frame.State == ProgressState.Playing)
@@ -869,10 +869,7 @@ public partial class MainWindow
             }
             else
             {
-                var elapsed = DateTimeOffset.UtcNow - _currentMediaInfo.LastUpdated.ToUniversalTime();
-                if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
-                if (elapsed > TimeSpan.FromMinutes(10)) elapsed = TimeSpan.FromMinutes(10);
-                position = _currentMediaInfo.Position + elapsed;
+                position = _currentMediaInfo.Position;
             }
             if (position > _currentMediaInfo.Duration) position = _currentMediaInfo.Duration;
         }
@@ -1308,7 +1305,10 @@ public partial class MainWindow
 
             CompactTrackFallbackText.BeginAnimation(OpacityProperty, null);
             CompactTrackFallbackText.Opacity = 0;
+            CompactTrackFallbackText.Visibility = Visibility.Collapsed;
+            CompactTrackFallbackText.Text = "";
 
+            CompactLyricText.Visibility = Visibility.Visible;
             CompactLyricText.Text = currentText;
             CompactLyricText.BeginAnimation(OpacityProperty, null);
             var fadeIn = MakeAnim(0.0, 1.0, _dur200, _easeQuadOut);
@@ -1320,7 +1320,7 @@ public partial class MainWindow
         }
         else
         {
-            if (string.IsNullOrEmpty(_lastCompactLyricLine) && CompactTrackFallbackText.Opacity > 0.9) return;
+            if (string.IsNullOrEmpty(_lastCompactLyricLine) && CompactTrackFallbackText.Opacity > 0.9 && CompactTrackFallbackText.Visibility == Visibility.Visible) return;
             _lastCompactLyricLine = "";
 
             string fallback = "";
@@ -1339,13 +1339,16 @@ public partial class MainWindow
                 : Math.Max(_collapsedWidth, Math.Min(560, requiredFallbackWidth));
             TransitionToCompactSize(targetFallbackW, _collapsedHeight);
 
+            CompactLyricText.BeginAnimation(OpacityProperty, null);
+            CompactLyricText.Opacity = 0;
+            CompactLyricText.Visibility = Visibility.Collapsed;
+            CompactLyricText.Text = "";
+
+            CompactTrackFallbackText.Visibility = Visibility.Visible;
             CompactTrackFallbackText.Text = fallback;
             CompactTrackFallbackText.BeginAnimation(OpacityProperty, null);
             var fadeInFallback = MakeAnim(0.0, 1.0, _dur250, _easeQuadOut);
             CompactTrackFallbackText.BeginAnimation(OpacityProperty, fadeInFallback);
-
-            CompactLyricText.BeginAnimation(OpacityProperty, null);
-            CompactLyricText.Opacity = 0;
         }
     }
 
@@ -1373,7 +1376,37 @@ public partial class MainWindow
         _currentLyrics = null;
         _currentLyricIndex = -1;
         _lastCompactLyricLine = "";
-        UpdateCompactLyricsDisplay(null);
+
+        if (CompactLyricText != null)
+        {
+            CompactLyricText.BeginAnimation(OpacityProperty, null);
+            CompactLyricText.Opacity = 0;
+            CompactLyricText.Visibility = Visibility.Collapsed;
+            CompactLyricText.Text = "";
+        }
+
+        if (CompactTrackFallbackText != null)
+        {
+            CompactTrackFallbackText.BeginAnimation(OpacityProperty, null);
+            CompactTrackFallbackText.Opacity = 0;
+            CompactTrackFallbackText.Visibility = Visibility.Collapsed;
+            CompactTrackFallbackText.Text = "";
+        }
+
+        if (LyricTextA != null)
+        {
+            LyricTextA.BeginAnimation(OpacityProperty, null);
+            LyricTextA.Opacity = 0;
+            LyricTextA.Text = "";
+        }
+
+        if (LyricTextB != null)
+        {
+            LyricTextB.BeginAnimation(OpacityProperty, null);
+            LyricTextB.Opacity = 0;
+            LyricTextB.Text = "";
+        }
+
         _subtitleFetchFailureCount = 0;
         _lastSubtitleFetchFailureTime = DateTime.MinValue;
         _syncedTextSource = SyncedTextSource.None;
@@ -1382,5 +1415,6 @@ public partial class MainWindow
         ResetSpotifyCanvas();
         HideLyricsSearchState(immediate: true);
         HideLyricsWidget();
+        UpdateCompactLyricsDisplay(null);
     }
 }

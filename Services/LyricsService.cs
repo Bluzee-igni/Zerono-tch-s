@@ -158,6 +158,16 @@ internal sealed partial class LyricsService : IDisposable
 
     private async Task<LyricsResult?> FetchUncachedLyricsAsync(FetchKey key, CancellationToken token)
     {
+        string cleanTrack = CleanTitle(key.Track);
+        string cleanArtist = CleanArtist(key.Artist);
+
+        if (!string.IsNullOrWhiteSpace(cleanTrack))
+        {
+            string primaryQuery = string.IsNullOrWhiteSpace(cleanArtist) ? cleanTrack : $"{cleanTrack} {cleanArtist}";
+            var fastQuery = await TryQuerySearchAsync(primaryQuery, cleanTrack, key.DurationSeconds, token).ConfigureAwait(false);
+            if (fastQuery is { Count: > 0 }) return new LyricsResult(fastQuery, "LRCLIB");
+        }
+
         var candidates = GenerateSearchCandidates(key.Track, key.Artist);
         foreach (var (candTrack, candArtist) in candidates)
         {

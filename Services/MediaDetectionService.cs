@@ -495,6 +495,21 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
     private void OnPlaybackChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
     {
         Interlocked.Exchange(ref _lastEventTimeTicks, DateTime.UtcNow.Ticks);
+        try
+        {
+            var pb = sender.GetPlaybackInfo();
+            if (pb != null && pb.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused)
+            {
+                if (_lastPublishedInfo is { IsPlaying: true } last)
+                {
+                    var fastPaused = last.Clone();
+                    fastPaused.IsPlaying = false;
+                    fastPaused.LastUpdated = DateTimeOffset.Now;
+                    _ = FireMediaChangedAsync(fastPaused);
+                }
+            }
+        }
+        catch { }
         _changes.Enqueue(ChangeTypes.Playback);
     }
 

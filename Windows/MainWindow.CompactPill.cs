@@ -190,13 +190,29 @@ public partial class MainWindow
 
             if (!string.IsNullOrWhiteSpace(_lastCompactLyricLine))
             {
-                CompactLyricText.Text = _lastCompactLyricLine;
-                CompactLyricText.Opacity = 1;
-                CompactTrackFallbackText.Opacity = 0;
+                if (CompactTrackFallbackText != null)
+                {
+                    CompactTrackFallbackText.BeginAnimation(OpacityProperty, null);
+                    CompactTrackFallbackText.Opacity = 0;
+                    CompactTrackFallbackText.Visibility = Visibility.Collapsed;
+                    CompactTrackFallbackText.Text = "";
+                }
+                if (CompactLyricText != null)
+                {
+                    CompactLyricText.Visibility = Visibility.Visible;
+                    CompactLyricText.Text = _lastCompactLyricLine;
+                    CompactLyricText.Opacity = 1;
+                }
             }
             else
             {
-                CompactLyricText.Opacity = 0;
+                if (CompactLyricText != null)
+                {
+                    CompactLyricText.BeginAnimation(OpacityProperty, null);
+                    CompactLyricText.Opacity = 0;
+                    CompactLyricText.Visibility = Visibility.Collapsed;
+                    CompactLyricText.Text = "";
+                }
                 string fallback = "";
                 if (_currentMediaInfo != null && !string.IsNullOrWhiteSpace(_currentMediaInfo.CurrentTrack))
                 {
@@ -204,8 +220,12 @@ public partial class MainWindow
                         ? _currentMediaInfo.CurrentTrack
                         : $"{_currentMediaInfo.CurrentTrack} • {_currentMediaInfo.CurrentArtist}";
                 }
-                CompactTrackFallbackText.Text = fallback;
-                CompactTrackFallbackText.Opacity = 1;
+                if (CompactTrackFallbackText != null)
+                {
+                    CompactTrackFallbackText.Visibility = Visibility.Visible;
+                    CompactTrackFallbackText.Text = fallback;
+                    CompactTrackFallbackText.Opacity = 1;
+                }
             }
 
             if (MusicViz != null)

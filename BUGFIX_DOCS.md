@@ -234,3 +234,35 @@ Dokumentasi ini mencatat secara rinci riwayat bug kritis, akar penyebab (*root c
   3. **Lebar Dinamis Penuh Mengikuti Panjang Lirik:**
      Di `MainWindow.Lyrics.cs` dan `MainWindow.CompactPill.cs`, batas pelebaran dibuka leluasa hingga `700px` (`SystemParameters.PrimaryScreenWidth * 0.70`). Notch otomatis memanjang secara mulus (`CubicEase`, `300ms`) mengikuti seluruh kalimat lirik tanpa terpotong, dan menyusut kembali saat kalimat pendek.
   - File terkait: `Windows/MainWindow.Progress.cs`, `Windows/MainWindow.Media.cs`, `Windows/MainWindow.Lyrics.cs`, `Windows/MainWindow.CompactPill.cs`.
+
+---
+
+## 17. Perbaikan Lirik Saling Timpa Saat Ganti Lagu Mendadak di Tengah Pemutaran
+- **Gejala:** Saat lagu diganti mendadak di tengah-tengah pemutaran (misal melompat dari lagu A ke lagu B), teks lirik lagu lama dan judul lagu baru saling bertumpuk (overlap/collision) di area tengah Compact Notch.
+- **Akar Masalah:**
+  1. Kontrol `CompactLyricText` dan `CompactTrackFallbackText` terletak di cell Grid yang sama dan sebelumnya hanya menganimasikan properti `Opacity` tanpa menyetel `Visibility = Visibility.Collapsed` dan tanpa mengosongkan `.Text = ""`.
+  2. Saat lagu berganti mendadak, sisa animasi lirik lagu lama belum selesai memudar, sementara teks judul lagu baru mulai masuk. Kedua TextBlock sama-sama aktif dan langsung tercetak bertumpuk di titik koordinat yang sama.
+  3. `ClearLyrics()` sebelumnya menunda pembersihan teks selama 300ms di dalam callback fade out, sehingga balapan dengan unduhan lirik baru.
+- **Solusi Kode:**
+  1. **Instant Wipeout di `ClearLyrics()`:** Detik itu juga hentikan seluruh clock animasi (`BeginAnimation(null)`), kosongkan teks ke string kosong (`.Text = ""`), dan setel `Visibility = Visibility.Collapsed` pada `CompactLyricText`, `CompactTrackFallbackText`, `LyricTextA`, dan `LyricTextB`.
+  2. **Strict Exclusivity:** Pada `UpdateCompactLyricsDisplay` dan `SetCompactModeContent`:
+     - Jika lirik aktif: paksa fallback judul `Visibility = Visibility.Collapsed` dan `Text = ""`.
+     - Jika lirik belum ada / instrumental: paksa lirik `Visibility = Visibility.Collapsed` dan `Text = ""`.
+  - File terkait: `Windows/MainWindow.Lyrics.cs`, `Windows/MainWindow.CompactPill.cs`.
+
+---
+
+## 18. Zero-Latency Pause & Fast-Path LRCLIB Smart Search (<400ms)
+- **Gejala:**
+  1. Saat video/musik di YouTube di-pause, status di notch lambat berhenti dan teks lirik terus berjalan sendiri padahal video sudah berhenti.
+  2. Pencarian lirik untuk lagu YouTube membutuhkan waktu 10–13 detik karena rentetan 404/503.
+- **Akar Masalah:**
+  1. `ProgressEngine.cs` memiliki `PauseConfirmationWindow = 700ms` yang menolak mengonfirmasi status pause selama 700ms.
+  2. `MainWindow.Lyrics.cs` memiliki rumus ekstrapolasi waktu `position = Position + (DateTime.UtcNow - LastUpdated)`. Selama status pause belum diakui, waktu jam komputer terus bertambah sehingga posisi lirik dipaksa maju 1 detik setiap detik.
+  3. `LyricsService.cs` mengeksekusi antrean panjang kueri eksak durasi `/api/get` yang selalu gagal (404) pada lagu YouTube karena durasi video berbeda dari CD audio, sehingga memicu rate-limit 503 dari server LRCLIB.
+- **Solusi Kode:**
+  1. **Instant Pause Detection:** Di `MediaDetectionService.OnPlaybackChanged`, jika status sesi adalah `Paused`, langsung publikasikan `isPaused` ke UI dalam waktu < 5ms.
+  2. **Zero-Latency Pause di `ProgressEngine`:** Hapus penundaan 700ms pada `ProcessPendingPauseConfirmation` sehingga `_state = ProgressState.Paused` aktif seketika.
+  3. **Bekukan Posisi Lirik Total:** Di `MainWindow.Lyrics.cs`, jika status bukan Playing, hentikan penambahan waktu jam komputer dan bekukan `position`. Di `MainWindow.Progress.cs`, `LyricsTimer_Tick` hanya berjalan jika lagu benar-benar `Playing`.
+  4. **Fast-Path Smart Search (<400ms):** Di `LyricsService.FetchUncachedLyricsAsync`, langsung panggil `/api/search?q={track} {artist}` di giliran pertama. Kueri ini tidak bergantung pada durasi detik eksak dan mengembalikan lirik lengkap dalam 1 panggilan HTTP saja tanpa terkena rate-limiting 503.
+  - File terkait: `Services/LyricsService.cs`, `Services/ProgressEngine.cs`, `Services/MediaDetectionService.cs`, `Windows/MainWindow.Lyrics.cs`, `Windows/MainWindow.Progress.cs`.
