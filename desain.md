@@ -88,7 +88,9 @@ Semua dimensi dasar diatur dinamis melalui `_settings` dan disinkronkan via `Mai
 - **Expanded Height**: `147px` (Notch Mode) atau `154px` (Dynamic Island Mode).
 - **MediaWidget Padding**: `12,12,6,4` (Proporsi asli agar ruang slider durasi tidak terhimpit).
 - **Thumbnail Album Art**: `102x102 px` dengan `CornerRadius="14"` dan margin kanan `8px`.
-- **Thumbnail Mini Compact**: `26x26 px` dengan `CornerRadius="6"` dan margin kanan `10px`.
+- **Thumbnail Mini Compact**: `24x24 px` dengan `CornerRadius="6"` dan margin kanan `10px`.
+- **Ikon OSD Mini**: `24x24 px` dengan `CornerRadius="6"` dan margin kanan `10px`.
+- **Center Alignment**: Seluruh elemen compact notch diapit di tengah dengan `VerticalAlignment="Center"` dan `HorizontalAlignment="Center"`, dengan `Margin="0"` pada sumbu vertikal untuk simetri absolut atas-bawah.
 
 ---
 

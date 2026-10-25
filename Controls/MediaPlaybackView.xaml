@@ -265,7 +265,7 @@ c1.513-0.625,3.253-0.275,4.407,0.885l17.862,17.951c2.088,2.098,2.088,5.488,0,7.5
                                                     </Viewbox>
                                                 </ctrl:ActionBorder>
 
-                                                <ctrl:ActionBorder x:Name="NextButton"
+                                                 <ctrl:ActionBorder x:Name="NextButton"
                                                         Grid.Column="2"
                                                         Background="Transparent"
                                                         CornerRadius="8"
@@ -275,7 +275,7 @@ c1.513-0.625,3.253-0.275,4.407,0.885l17.862,17.951c2.088,2.098,2.088,5.488,0,7.5
                                                         MouseLeave="MediaButton_MouseLeave"
                                                         Width="32" Height="26"
                                                         Margin="0"
-                                                        HorizontalAlignment="Right"
+                                                        HorizontalAlignment="Center"
                                                         RenderTransformOrigin="0.5,0.5">
                                                     <Border.RenderTransform>
                                                         <ScaleTransform ScaleX="1" ScaleY="1"/>
@@ -298,6 +298,28 @@ c1.513-0.625,3.253-0.275,4.407,0.885l17.862,17.951c2.088,2.098,2.088,5.488,0,7.5
                                                             </Path.RenderTransform>
                                                         </Path>
                                                     </Canvas>
+                                                    </Viewbox>
+                                                </ctrl:ActionBorder>
+
+                                                <ctrl:ActionBorder x:Name="SwitchMediaButton"
+                                                        Grid.Column="2"
+                                                        Background="Transparent"
+                                                        CornerRadius="8"
+                                                        Cursor="Hand"
+                                                        ToolTip="Switch Media Source (⇄)"
+                                                        Click="SwitchMediaButton_Click"
+                                                        MouseEnter="MediaButton_MouseEnter"
+                                                        MouseLeave="MediaButton_MouseLeave"
+                                                        Width="26" Height="26"
+                                                        Margin="0"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Center">
+                                                    <Viewbox Width="13" Height="13">
+                                                        <Path Data="M 4,6 L 16,6 M 13,3 L 16,6 L 13,9 M 16,14 L 4,14 M 7,11 L 4,14 L 7,17"
+                                                              Stroke="{x:Static svc:UiPalette.SecondaryBrush}"
+                                                              StrokeThickness="2"
+                                                              StrokeStartLineCap="Round"
+                                                              StrokeEndLineCap="Round"/>
                                                     </Viewbox>
                                                 </ctrl:ActionBorder>
                                         </Grid>

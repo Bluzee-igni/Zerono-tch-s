@@ -38,6 +38,8 @@ public interface IMediaDetectionService : IDisposable
 
     Task SeekRelativeAsync(double seconds);
 
+    Task SwitchMediaSourceAsync() => Task.CompletedTask;
+
     Task SeekToAbsoluteAsync(TimeSpan position);
 
     bool TryGetCurrentSessionVolume(out float volume, out bool isMuted);

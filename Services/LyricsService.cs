@@ -595,7 +595,7 @@ internal sealed partial class LyricsService : IDisposable
         return lines.Count > 0 ? lines : null;
     }
 
-    private static string CleanTitle(string title)
+    internal static string CleanTitle(string title)
     {
         if (string.IsNullOrWhiteSpace(title)) return title;
 
@@ -613,7 +613,7 @@ internal sealed partial class LyricsService : IDisposable
         return s.Length == 0 ? title.Trim() : s;
     }
 
-    private static string CleanArtist(string artist)
+    internal static string CleanArtist(string artist)
     {
         if (string.IsNullOrWhiteSpace(artist)) return artist;
 

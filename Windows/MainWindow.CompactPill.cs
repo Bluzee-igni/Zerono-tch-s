@@ -82,31 +82,34 @@ public partial class MainWindow
         {
             case CompactTransientAction.Volume:
                 SetCompactModeContent(CompactContentType.VolumeOsd);
-                TransitionToCompactSize(280, CompactActiveHeight);
                 break;
             case CompactTransientAction.MicAlert:
                 SetCompactModeContent(CompactContentType.MicAlertOsd);
-                double micTextWidth = MeasureCompactTextWidth(CompactActionText?.Text ?? "Microphone Muted") + 90;
-                double targetMicWidth = Math.Clamp(micTextWidth, 220, 300);
-                TransitionToCompactSize(targetMicWidth, CompactActiveHeight);
                 break;
             case CompactTransientAction.Clipboard:
                 SetCompactModeContent(CompactContentType.CopiedOsd);
-                double snippetW = CompactCopiedSnippet != null && !string.IsNullOrEmpty(CompactCopiedSnippet.Text)
-                    ? MeasureCompactTextWidth(CompactCopiedSnippet.Text)
-                    : 0;
-                double targetCopiedWidth = Math.Clamp(MeasureCompactTextWidth("Copied") + snippetW + 110, 200, 340);
-                TransitionToCompactSize(targetCopiedWidth, CompactActiveHeight);
                 break;
             case CompactTransientAction.Notification:
                 SetCompactModeContent(CompactContentType.ToastNotificationOsd);
-                double toastW = Math.Clamp(MeasureCompactTextWidth(CompactToastMsg?.Text ?? "") + 130, 260, 360);
-                TransitionToCompactSize(toastW, CompactActiveHeight);
                 break;
             case CompactTransientAction.None:
             default:
                 EvaluateAndRestoreNotchState();
                 break;
+        }
+    }
+
+    private void AnimateContentCenterPop()
+    {
+        if (CompactContentScale != null)
+        {
+            var scaleAnim = new DoubleAnimation(0.92, 1.0, TimeSpan.FromMilliseconds(220))
+            {
+                EasingFunction = _cubicEaseOut
+            };
+            Timeline.SetDesiredFrameRate(scaleAnim, AnimationConfig.TargetFps);
+            CompactContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+            CompactContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
         }
     }
 
@@ -248,6 +251,7 @@ public partial class MainWindow
                 double maxScreenWidth = Math.Max(750, SystemParameters.PrimaryScreenWidth * 0.70);
                 targetActiveW = Math.Max(_collapsedWidth, Math.Min(maxScreenWidth, requiredWidth));
             }
+            AnimateContentCenterPop();
             TransitionToCompactSize(targetActiveW, _collapsedHeight);
             return;
         }
@@ -257,7 +261,12 @@ public partial class MainWindow
         if (CompactLyricsHost != null) CompactLyricsHost.Visibility = Visibility.Collapsed;
         if (CompactLyricText != null) CompactLyricText.Opacity = 0;
         if (CompactTrackFallbackText != null) CompactTrackFallbackText.Opacity = 0;
-        if (MusicViz != null) MusicViz.Visibility = Visibility.Collapsed;
+        if (MusicViz != null)
+        {
+            MusicViz.BeginAnimation(OpacityProperty, null);
+            MusicViz.Opacity = 0;
+            MusicViz.Visibility = Visibility.Collapsed;
+        }
 
         if (CompactActionIconBorder != null) CompactActionIconBorder.Visibility = Visibility.Collapsed;
         if (CompactVolumeOsd != null) CompactVolumeOsd.Visibility = Visibility.Collapsed;
@@ -267,29 +276,43 @@ public partial class MainWindow
         if (ClipboardCheckIcon != null) ClipboardCheckIcon.Visibility = Visibility.Collapsed;
         if (CompactToastHost != null) CompactToastHost.Visibility = Visibility.Collapsed;
 
+        double targetOsdWidth;
         switch (type)
         {
             case CompactContentType.VolumeOsd:
                 if (CompactActionIconBorder != null) CompactActionIconBorder.Visibility = Visibility.Visible;
                 if (CompactVolumeOsd != null) CompactVolumeOsd.Visibility = Visibility.Visible;
+                targetOsdWidth = 280;
                 break;
 
             case CompactContentType.MicAlertOsd:
                 if (CompactActionIconBorder != null) CompactActionIconBorder.Visibility = Visibility.Visible;
                 if (CompactActionText != null) CompactActionText.Visibility = Visibility.Visible;
+                double micTextWidth = MeasureCompactTextWidth(CompactActionText?.Text ?? "Microphone Muted");
+                targetOsdWidth = Math.Clamp(micTextWidth + 85, 220, 300);
                 break;
 
             case CompactContentType.CopiedOsd:
                 if (CompactCopiedHost != null) CompactCopiedHost.Visibility = Visibility.Visible;
+                double snippetW = CompactCopiedSnippet != null && !string.IsNullOrEmpty(CompactCopiedSnippet.Text)
+                    ? MeasureCompactTextWidth(CompactCopiedSnippet.Text)
+                    : 0;
+                targetOsdWidth = Math.Clamp(MeasureCompactTextWidth("Copied") + snippetW + 90, 200, 340);
                 break;
 
             case CompactContentType.ToastNotificationOsd:
                 if (CompactActionIconBorder != null) CompactActionIconBorder.Visibility = Visibility.Visible;
                 if (CompactToastHost != null) CompactToastHost.Visibility = Visibility.Visible;
+                targetOsdWidth = Math.Clamp(MeasureCompactTextWidth(CompactToastMsg?.Text ?? "") + 110, 260, 360);
+                break;
+
+            default:
+                targetOsdWidth = _collapsedWidth;
                 break;
         }
 
-        TransitionToCompactSize(CompactActiveWidth, CompactActiveHeight);
+        AnimateContentCenterPop();
+        TransitionToCompactSize(targetOsdWidth, CompactActiveHeight);
     }
 
     public void TransitionToCompactSize(double targetWidth, double targetHeight)

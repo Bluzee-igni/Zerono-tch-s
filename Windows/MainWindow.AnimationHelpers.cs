@@ -50,6 +50,13 @@ public partial class MainWindow
 
     private void AnimateThumbnailHover(bool isHovered)
     {
+        if (CompactHoverInfo != null)
+        {
+            CompactHoverInfo.BeginAnimation(OpacityProperty, null);
+            CompactHoverInfo.Opacity = 0;
+            CompactHoverInfo.Visibility = Visibility.Collapsed;
+        }
+
         if (_isExpanded || _isAnimating || _isGreetingActive) return;
 
         if (!isHovered && _isGestureActive) return;
@@ -61,96 +68,15 @@ public partial class MainWindow
             ResetCompactThumbnailNextLayer();
         }
 
-        bool islandMode = _settings.EnableDynamicIslandMode;
-        double thumbScale;
-        double notchWidth;
-        double notchHeight;
-
-        if (isHovered)
-        {
-            thumbScale = islandMode ? 1.28 : 1.5;
-            notchWidth = _collapsedWidth + (islandMode ? 24 : 32);
-            notchHeight = _collapsedHeight + (islandMode ? 22 : 36);
-        }
-        else
-        {
-            thumbScale = 1.0;
-            notchWidth = _collapsedWidth;
-            notchHeight = _collapsedHeight;
-        }
-        double infoOpacity = isHovered ? 1 : 0;
-
-        var duration = isHovered ? _dur500 : _dur350;
+        double thumbScale = isHovered ? 1.08 : 1.0;
+        var duration = isHovered ? _dur200 : _dur150;
         var easing = isHovered ? (IEasingFunction)_easeThumbSpring : _easeExpOut6;
         int animFps = VNotch.Services.AnimationConfig.TargetFps;
-
-        var widthAnim = MakeAnim(notchWidth, duration, isHovered ? _easeExpOut6 : _easeQuadOut, animFps);
-        var heightAnim = MakeAnim(notchHeight, duration, isHovered ? _easeExpOut6 : _easeQuadOut, animFps);
-        VNotch.Services.RuntimeLog.Log("NOTCH-WIDTH",
-            $"AnimateNotchHover -> {notchWidth} (hover={isHovered}, _isExpanded={_isExpanded}, _isAnimating={_isAnimating})");
-        NotchBorder.BeginAnimation(WidthProperty, widthAnim);
-        NotchBorder.BeginAnimation(HeightProperty, heightAnim);
-        // Same as AnimateNotchHover: keep the glass at full rate for the resize.
-
-        BeginGlassHoverMotion(widthAnim);
-
-        if (isHovered)
-        {
-            ApplyCompactTitleContainerWidth(notchWidth);
-        }
-
-        CompactThumbnailBorder.RenderTransformOrigin = new Point(0, 0);
 
         var thumbScaleAnimX = MakeAnim(thumbScale, duration, easing, animFps);
         var thumbScaleAnimY = MakeAnim(thumbScale, duration, easing, animFps);
         CompactThumbnailScale.BeginAnimation(ScaleTransform.ScaleXProperty, thumbScaleAnimX);
         CompactThumbnailScale.BeginAnimation(ScaleTransform.ScaleYProperty, thumbScaleAnimY);
-
-        if (isHovered)
-        {
-            CompactHoverInfo.Visibility = Visibility.Visible;
-
-            CompactHoverInfo.UpdateLayout();
-            UpdateCompactMarquee();
-
-            QueueCompactMarqueeRefresh();
-        }
-
-        var fadeAnim = MakeAnim(
-            infoOpacity,
-            isHovered ? _dur200 : TimeSpan.FromMilliseconds(240),
-            isHovered ? _easeQuadOut : _easePowerOut3);
-        if (!isHovered)
-        {
-            fadeAnim.Completed += (s, e) =>
-            {
-                if (_isCompactThumbnailHovered || CompactHoverInfo.Opacity >= 0.1) return;
-
-                CompactHoverInfo.Visibility = Visibility.Collapsed;
-                CompactHoverInfo.OpacityMask = null;
-            };
-        }
-        CompactHoverInfo.BeginAnimation(OpacityProperty, fadeAnim);
-
-        double radius;
-        if (isHovered)
-        {
-            radius = islandMode ? notchHeight / 2.0 : 24;
-        }
-        else
-        {
-            radius = _cornerRadiusCollapsed;
-        }
-        AnimateCornerRadius(radius, duration.TimeSpan);
-
-        double thumbRadius = isHovered && islandMode ? 8 : 6;
-        double startThumbRadius = CompactThumbnailBorder.CornerRadius.TopLeft;
-        if (Math.Abs(thumbRadius - startThumbRadius) > 0.1)
-        {
-            CurrentCompactThumbnailRadius = startThumbRadius;
-            var thumbRadiusAnim = MakeAnim(startThumbRadius, thumbRadius, duration, easing);
-            this.BeginAnimation(CurrentCompactThumbnailRadiusProperty, thumbRadiusAnim);
-        }
     }
 
     private void UpdateCompactMarquee()

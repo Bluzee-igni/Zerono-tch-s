@@ -266,3 +266,50 @@ Dokumentasi ini mencatat secara rinci riwayat bug kritis, akar penyebab (*root c
   3. **Bekukan Posisi Lirik Total:** Di `MainWindow.Lyrics.cs`, jika status bukan Playing, hentikan penambahan waktu jam komputer dan bekukan `position`. Di `MainWindow.Progress.cs`, `LyricsTimer_Tick` hanya berjalan jika lagu benar-benar `Playing`.
   4. **Fast-Path Smart Search (<400ms):** Di `LyricsService.FetchUncachedLyricsAsync`, langsung panggil `/api/search?q={track} {artist}` di giliran pertama. Kueri ini tidak bergantung pada durasi detik eksak dan mengembalikan lirik lengkap dalam 1 panggilan HTTP saja tanpa terkena rate-limiting 503.
   - File terkait: `Services/LyricsService.cs`, `Services/ProgressEngine.cs`, `Services/MediaDetectionService.cs`, `Windows/MainWindow.Lyrics.cs`, `Windows/MainWindow.Progress.cs`.
+
+---
+
+## 19. Audit True Center Alignment, SVG Vector Paths & Eliminasi Sub-Pill
+- **Gejala:**
+  1. Ikon OSD dan cover album di sisi kiri terlihat turun/melorot lebih dekat ke tepi bawah kapsul.
+  2. Logo mikrofon mute/unmute dan volume pecah atau tampak aneh karena dirender dari karakter font glyph.
+  3. Saat mengarahkan mouse (hover) ketika lirik berjalan, muncul sub-pill kecil rusak di bawah notch.
+- **Akar Masalah:**
+  1. Kontainer `MusicCompactContent` sebelumnya memiliki 2 baris (Row 1 ditempati `CompactHoverInfo` yang memakan ruang vertikal) dan elemen-elemen di dalamnya memiliki margin vertikal yang tidak simetris.
+  2. Penggunaan text glyph font untuk ikon sistem bergantung pada rendering font mesin pengguna yang tidak konsisten.
+  3. Handler `AnimateThumbnailHover` menaikkan tinggi notch ke bawah untuk memunculkan marquee teks judul, menghasilkan bayangan sub-pill yang mengganggu transisi hover.
+- **Solusi Kode:**
+  1. **True Center Alignment:** `MusicCompactContent` disetel `HorizontalAlignment="Center"`, `VerticalAlignment="Center"`, `Margin="14,0"`. Seluruh kotak logo kiri (`CompactThumbnailBorder` & `CompactActionIconBorder`) diseragamkan ke `24x24 px` (`CornerRadius="6"`) dengan `VerticalAlignment="Center"` dan `Margin="0,0,10,0"`.
+  2. **SVG Vector Paths:** Mengganti seluruh TextBlock glyph dengan elemen WPF `<Path>` menggunakan data SVG resmi:
+     - Mic Muted: Kotak merah `#EF4444`, ikon putih `#FFFFFF` SVG path.
+     - Mic Active: Kotak hijau `#22C55E`, ikon putih `#FFFFFF` SVG path.
+     - Volume: Path speaker dinamis (mute, low, high).
+     - Copied: Path centang tajam `#22C55E`.
+  3. **Sub-Pill Disposed:** Mengubah `AnimateThumbnailHover` agar hanya melakukan scaling halus (1.08x) pada thumbnail tanpa memperbesar tinggi notch ke bawah, dan menyembunyikan `CompactHoverInfo`.
+  - File terkait: `Windows/MainWindow.xaml`, `Windows/MainWindow.AnimationHelpers.cs`, `Windows/MainWindow.Controls.cs`, `Windows/MainWindow.SystemAlerts.cs`.
+
+---
+
+## 20. Pemulihan Album Art Chrome ke iTunes API Fallback & 1s Retry
+- **Gejala:** Saat mengganti lagu di YouTube Music pada Chrome, stream thumbnail SMTC sempat kosong sehingga notch terjebak menampilkan ikon proses `chrome.exe` dan tidak mau ter-refresh.
+- **Akar Masalah:**
+  Chrome sempat tidak mengisi stream thumbnail SMTC di awal pergantian lagu. Sistem V-Notch membaca ikon aplikasi sebagai fallback dan menghentikan pencarian selanjutnya.
+- **Solusi Kode:**
+  1. Memasang flag `_hasRealAlbumArt = false` setiap kali lagu berganti atau saat thumbnail yang terdeteksi hanyalah ikon browser/placeholder ($\le 64\text{px}$).
+  2. Menjalankan background task `TriggerAlbumArtRecovery`:
+     - Jika dalam 1.5 detik cover asli belum diterima dari SMTC, lakukan kueri background ke **iTunes Search API** (`https://itunes.apple.com/search?term=...`). Ambil URL `artworkUrl100`, ubah menjadi `512x512bb`, unduh sebagai BitmapImage, lalu perbarui thumbnail notch secara otomatis.
+     - Melakukan polling retry ke SMTC setiap 1 detik untuk menangkap stream resolusi penuh browser saat sudah siap.
+  - File terkait: `Services/MediaDetectionService.cs`.
+
+---
+
+## 21. Smart Exclusive Playback Handover & Tombol Switch Media Source
+- **Gejala:** Saat sedang memutar lagu lalu mulai memutar video YouTube, suara keduanya bertabrakan (double). Saat tombol pause ditekan di notch, perintah malah menembak video YouTube alih-alih lagu musik yang sedang ingin dimatikan.
+- **Akar Masalah:**
+  1. Windows SMTC mengizinkan multi-sesi aktif bersamaan tanpa mem-pause sesi sebelumnya.
+  2. Handler play/pause sebelumnya mengirimkan global media key `VK_MEDIA_PLAY_PAUSE` yang ditembakkan secara acak ke window yang sedang memiliki fokus input Windows.
+- **Solusi Kode:**
+  1. **Smart Auto-Pause (Handover):** Pada `OnPlaybackChanged` dan pemindaian sesi `ResolveActiveSessionAsync`, saat Sesi B berpindah status menjadi `Playing`, sistem otomatis mengirimkan `await otherSession.TryPauseAsync()` ke Sesi A agar lagu lama langsung berhenti saat video baru diputar.
+  2. **Targeted Play/Pause:** Di `MediaTransportControlService.cs`, tombol Play/Pause menembak langsung method `session.TryPauseAsync()` / `session.TryPlayAsync()` pada objek sesi yang aktif, tanpa menembakkan tombol keyboard global ke window lain.
+  3. **Tombol Switch Media Source:** Menambahkan tombol `⇄ Switch Media` di Expanded View (`MediaPlaybackView.xaml`) untuk memungkinkan pengguna berpindah kendali antar-sesi secara instan ketika ada lebih dari 1 sesi media yang berjalan.
+  - File terkait: `Services/MediaDetectionService.cs`, `Services/IMediaDetectionService.cs`, `Services/MediaTransportControlService.cs`, `Controls/MediaPlaybackView.xaml`, `Controls/MediaPlaybackView.xaml.cs`.

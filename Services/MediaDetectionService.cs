@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -498,14 +499,40 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
         try
         {
             var pb = sender.GetPlaybackInfo();
-            if (pb != null && pb.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused)
+            if (pb != null)
             {
-                if (_lastPublishedInfo is { IsPlaying: true } last)
+                if (pb.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused)
                 {
-                    var fastPaused = last.Clone();
-                    fastPaused.IsPlaying = false;
-                    fastPaused.LastUpdated = DateTimeOffset.Now;
-                    _ = FireMediaChangedAsync(fastPaused);
+                    if (_lastPublishedInfo is { IsPlaying: true } last)
+                    {
+                        var fastPaused = last.Clone();
+                        fastPaused.IsPlaying = false;
+                        fastPaused.LastUpdated = DateTimeOffset.Now;
+                        _ = FireMediaChangedAsync(fastPaused);
+                    }
+                }
+                else if (pb.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                {
+                    var allSessions = _sessionManager?.GetSessions();
+                    if (allSessions != null)
+                    {
+                        foreach (var other in allSessions)
+                        {
+                            if (!AreSameSession(other, sender))
+                            {
+                                try
+                                {
+                                    var otherPb = other.GetPlaybackInfo();
+                                    if (otherPb != null && otherPb.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                                    {
+                                        RuntimeLog.Info("MEDIA-HANDOVER", $"Handover: pausing '{other.SourceAppUserModelId}'");
+                                        _ = other.TryPauseAsync();
+                                    }
+                                }
+                                catch { }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -790,6 +817,135 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
         }, ct);
     }
 
+    private static readonly HttpClient _itunesArtworkClient = new()
+    {
+        Timeout = TimeSpan.FromSeconds(6)
+    };
+
+    private bool _hasRealAlbumArt;
+    private CancellationTokenSource? _albumArtRecoveryCts;
+
+    private void TriggerAlbumArtRecovery(string track, string artist)
+    {
+        _albumArtRecoveryCts?.Cancel();
+        _albumArtRecoveryCts?.Dispose();
+        _albumArtRecoveryCts = new CancellationTokenSource();
+        var ct = _albumArtRecoveryCts.Token;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(1500, ct).ConfigureAwait(false);
+                if (ct.IsCancellationRequested || _hasRealAlbumArt) return;
+
+                if (!_hasRealAlbumArt && !string.IsNullOrWhiteSpace(track))
+                {
+                    var itunesBmp = await FetchArtworkFromITunesAsync(track, artist, ct).ConfigureAwait(false);
+                    if (itunesBmp != null && !_hasRealAlbumArt && !ct.IsCancellationRequested)
+                    {
+                        _hasRealAlbumArt = true;
+                        CachedThumbnail = itunesBmp;
+                        _cachedThumbnailSource = "iTunes";
+                        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                        if (dispatcher != null)
+                        {
+                            await dispatcher.InvokeAsync(() =>
+                            {
+                                if (_lastPublishedInfo != null && _lastPublishedInfo.CurrentTrack == track)
+                                {
+                                    var update = _lastPublishedInfo.Clone();
+                                    update.Thumbnail = itunesBmp;
+                                    update.IsThumbnailOnlyUpdate = true;
+                                    _lastTrackSignature = update.GetSignature();
+                                    MediaChanged?.Invoke(this, update);
+                                }
+                            });
+                        }
+                        return;
+                    }
+                }
+
+                for (int i = 0; i < 6 && !_hasRealAlbumArt && !ct.IsCancellationRequested; i++)
+                {
+                    await Task.Delay(1000, ct).ConfigureAwait(false);
+                    if (ct.IsCancellationRequested || _hasRealAlbumArt) return;
+
+                    var session = GetActiveSession();
+                    if (session != null)
+                    {
+                        var props = await session.TryGetMediaPropertiesAsync();
+                        if (props?.Thumbnail != null)
+                        {
+                            using var stream = await props.Thumbnail.OpenReadAsync();
+                            if (stream != null && stream.Size > 0)
+                            {
+                                var bmp = await ConvertToWpfBitmapAsync(stream, ct);
+                                if (bmp != null && bmp.PixelWidth >= 120)
+                                {
+                                    _hasRealAlbumArt = true;
+                                    CachedThumbnail = bmp;
+                                    _cachedThumbnailSource = "SMTC-Retry";
+                                    var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                                    if (dispatcher != null)
+                                    {
+                                        await dispatcher.InvokeAsync(() =>
+                                        {
+                                            if (_lastPublishedInfo != null && _lastPublishedInfo.CurrentTrack == track)
+                                            {
+                                                var update = _lastPublishedInfo.Clone();
+                                                update.Thumbnail = bmp;
+                                                update.IsThumbnailOnlyUpdate = true;
+                                                _lastTrackSignature = update.GetSignature();
+                                                MediaChanged?.Invoke(this, update);
+                                            }
+                                        });
+                                    }
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+        }, ct);
+    }
+
+    private async Task<BitmapSource?> FetchArtworkFromITunesAsync(string track, string artist, CancellationToken ct)
+    {
+        try
+        {
+            string cleanTitle = LyricsService.CleanTitle(track);
+            string cleanArtist = LyricsService.CleanArtist(artist);
+            string query = string.IsNullOrWhiteSpace(cleanArtist) ? cleanTitle : $"{cleanTitle} {cleanArtist}";
+            string url = $"https://itunes.apple.com/search?term={Uri.EscapeDataString(query)}&media=music&limit=1";
+
+            using var response = await _itunesArtworkClient.GetAsync(url, ct).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) return null;
+
+            using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
+
+            if (!doc.RootElement.TryGetProperty("results", out var results) || results.GetArrayLength() == 0)
+                return null;
+
+            var item = results[0];
+            if (!item.TryGetProperty("artworkUrl100", out var artProp))
+                return null;
+
+            string? artUrl = artProp.GetString();
+            if (string.IsNullOrEmpty(artUrl)) return null;
+
+            artUrl = artUrl.Replace("100x100bb", "512x512bb");
+            return await _artworkService.DownloadImageAsync(artUrl, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private void TrackNameChangeBookkeeping(MediaInfo info)
     {
         if (info.CurrentTrack == _lastTrackName) return;
@@ -797,7 +953,9 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
         _lastTrackName = info.CurrentTrack;
         _lastMetadataChangeTime = DateTime.UtcNow;
         CachedThumbnail = null;
+        _hasRealAlbumArt = false;
         TriggerStagedTrackRefresh();
+        TriggerAlbumArtRecovery(info.CurrentTrack, info.CurrentArtist);
 
         if (!string.IsNullOrEmpty(info.CurrentTrack))
         {
@@ -3860,6 +4018,9 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
             _stagedTrackRefreshCts?.Cancel();
             _stagedTrackRefreshCts?.Dispose();
             _stagedTrackRefreshCts = null;
+            _albumArtRecoveryCts?.Cancel();
+            _albumArtRecoveryCts?.Dispose();
+            _albumArtRecoveryCts = null;
             if (isDisposing) _pinReconnect.Dispose();
             else _pinReconnect.Reset();
 
@@ -3978,6 +4139,39 @@ public sealed class MediaDetectionService : IMediaDetectionService, IAsyncDispos
     public Task SeekRelativeAsync(double seconds) => _transportService.SeekRelativeAsync(seconds);
 
     public Task SeekToAbsoluteAsync(TimeSpan position) => _transportService.SeekToAbsoluteAsync(position);
+
+    public Task SwitchMediaSourceAsync()
+    {
+        var sessionManager = _sessionManager;
+        if (sessionManager == null) return Task.CompletedTask;
+
+        try
+        {
+            var sessions = sessionManager.GetSessions();
+            if (sessions == null || sessions.Count <= 1) return Task.CompletedTask;
+
+            int currentIndex = -1;
+            for (int i = 0; i < sessions.Count; i++)
+            {
+                if (AreSameSession(sessions[i], _activeDisplaySession))
+                {
+                    currentIndex = i;
+                    break;
+                }
+            }
+
+            int nextIndex = (currentIndex + 1) % sessions.Count;
+            var nextSession = sessions[nextIndex];
+            SwitchActiveDisplaySessionIfNeeded(nextSession);
+            _changes.Enqueue(ChangeTypes.ForceRefresh);
+        }
+        catch (Exception ex)
+        {
+            RuntimeLog.Error("MEDIA-SWITCH", ex.ToString());
+        }
+
+        return Task.CompletedTask;
+    }
 }
 
 [Flags]

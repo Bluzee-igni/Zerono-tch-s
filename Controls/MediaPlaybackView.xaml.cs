@@ -158,6 +158,18 @@ public partial class MediaPlaybackView : UserControl, IDisposable
         catch (Exception ex) { RuntimeLog.Error("MEDIA-CTRL", ex, "PlayPause failed"); }
     }
 
+    internal async void SwitchMediaButton_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        if (_disposed || _mediaService == null) return;
+        try
+        {
+            ButtonFeedback.PlayButtonPressAnimation(SwitchMediaButton);
+            await _mediaService.SwitchMediaSourceAsync();
+        }
+        catch (Exception ex) { RuntimeLog.Error("MEDIA-CTRL", ex, "SwitchMedia failed"); }
+    }
+
     internal async void NextButton_Click(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true;

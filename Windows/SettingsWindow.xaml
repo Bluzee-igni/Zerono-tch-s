@@ -516,11 +516,11 @@
                             Height="34"
                             MinWidth="0"
                             BorderThickness="0"
-                            Background="#121212"
+                            Background="#181818"
                             Cursor="Hand"
                             Click="Cancel_Click">
-                        <TextBlock Text="✕" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{StaticResource SettingsTextBrush}"
+                        <TextBlock Text="✕" FontSize="13" FontWeight="Bold"
+                                   Foreground="#FFFFFF"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                    Margin="0,-1,0,0"/>
                     </Button>
@@ -795,12 +795,12 @@
                     </Border>
 
                     <ScrollViewer x:Name="SettingsScrollViewer"
-                                  Grid.Row="1"
-                                  VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled"
-                                  Padding="20,0,14,14"
-                                  CanContentScroll="False"
-                                   PreviewMouseWheel="SettingsScrollViewer_PreviewMouseWheel">
+                                   Grid.Row="1"
+                                   VerticalScrollBarVisibility="Auto"
+                                   HorizontalScrollBarVisibility="Disabled"
+                                   Padding="20,16,14,14"
+                                   CanContentScroll="False"
+                                    PreviewMouseWheel="SettingsScrollViewer_PreviewMouseWheel">
                         <Grid x:Name="ContentHost">
 
                             <StackPanel x:Name="PanelSearching" Visibility="Collapsed">

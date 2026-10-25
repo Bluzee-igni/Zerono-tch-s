@@ -41,7 +41,7 @@ public sealed class MediaTransportControlService
             {
                 success = await session.TryTogglePlayPauseAsync();
             }
-            if (!success)
+            if (!success && session == null)
             {
                 _sendMediaKey(Win32Interop.VK_MEDIA_PLAY_PAUSE);
             }
@@ -49,7 +49,11 @@ public sealed class MediaTransportControlService
         catch (Exception ex)
         {
             RuntimeLog.Error(LogTag, ex, "PlayPause failed");
-            _sendMediaKey(Win32Interop.VK_MEDIA_PLAY_PAUSE);
+            var session = _getActiveSession();
+            if (session == null)
+            {
+                _sendMediaKey(Win32Interop.VK_MEDIA_PLAY_PAUSE);
+            }
         }
     }
 
