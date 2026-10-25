@@ -162,13 +162,15 @@ public partial class MainWindow
         }
         else
         {
-            if (isYouTube && !string.IsNullOrEmpty(info.YouTubeVideoId))
+            if (info.IsPlaying)
             {
-                // Re-fetch if the resolved video ID has changed, or if subtitles were not loaded and lyrics are inactive.
-                string targetKey = $"yt:{info.YouTubeVideoId}";
-                if (targetKey != _lyricsTrackKey || (!_isLyricsActive && (_currentLyrics == null || _currentLyrics.Count == 0)))
+                if (_currentLyrics != null && _currentLyrics.Count > 0)
                 {
-                    FetchLyricsForTrack(info).SafeFireAndForget("LYRICS");
+                    UpdateLyricsDisplay();
+                }
+                else if (result.HasRealTrack)
+                {
+                    FetchLyricsForTrack(info).SafeFireAndForget("LYRICS-RESUME");
                 }
             }
         }

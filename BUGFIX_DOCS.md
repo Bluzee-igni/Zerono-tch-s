@@ -208,5 +208,29 @@ Dokumentasi ini mencatat secara rinci riwayat bug kritis, akar penyebab (*root c
 - **Solusi Kode:**
   1. **Preserve Native SMTC Album Art:** Di `ThumbnailHeuristics.cs`, jika thumbnail SMTC berformat bujur sangkar (aspect ratio 1.0 $\pm$ 0.1) dan berukuran $\ge 120\text{px}$, tetapkan keputusan sebagai `Accept`. Di `MediaDetectionService.cs`, jika thumbnail SMTC bujur sangkar sudah tersedia, **jangan timpa dengan frame video YouTube eksternal**.
   2. **Eliminasi Subtitle Mismatch:** Pada `MainWindow.Lyrics.cs`, jika LRCLIB tidak menemukan lirik tersinkronisasi, tampilkan fallback bersih `Judul Lagu • Artis` tanpa mengunduh auto-generated video captions YouTube yang tidak cocok.
-  3. **Tampilan Lirik Multi-Kalimat:** Pada `UpdateCompactLyricsDisplay`, izinkan lebar notch menyesuaikan dinamis hingga 600px mengikuti panjang baris lirik multi-kalimat yang sedang dinyanyikan.
-  - File terkait: `Services/ThumbnailHeuristics.cs`, `Services/MediaDetectionService.cs`, `Windows/MainWindow.Lyrics.cs`.
+   3. **Tampilan Lirik Multi-Kalimat:** Pada `UpdateCompactLyricsDisplay`, izinkan lebar notch menyesuaikan dinamis hingga 600px mengikuti panjang baris lirik multi-kalimat yang sedang dinyanyikan.
+   - File terkait: `Services/ThumbnailHeuristics.cs`, `Services/MediaDetectionService.cs`, `Windows/MainWindow.Lyrics.cs`.
+
+---
+
+## 16. Perbaikan Lirik Hilang Setelah Pause Lama & Notch Panjang Mengikuti Lirik Multi-Kalimat
+- **Gejala:**
+  1. Ketika lagu di-pause dan notch ditinggal beraktivitas lain, saat lagu di-play kembali (resume), lirik lagu tidak muncul sama sekali di Compact Notch.
+  2. Kalimat lirik yang panjang atau terdiri dari beberapa kalimat terpotong `...` (ellipsis) karena lebar notch dibatasi kaku.
+- **Akar Masalah:**
+  1. Di `Windows/MainWindow.Progress.cs`, `shouldRunLyrics` sebelumnya disetel `_isExpanded && !_isMusicExpanded`. Akibatnya, saat notch berada dalam mode Compact, `_lyricsTimer` **dimatikan secara total**. Selain itu, saat lagu di-resume (`result.IsNewTrack == false`), pemanggilan lirik tidak dipicu ulang sehingga lirik tetap kosong.
+  2. Batas pelebaran notch pada `UpdateCompactLyricsDisplay` dan `SetCompactModeContent` sebelumnya dibatasi kaku pada `440px`. Kalimat lirik panjang dengan lebar 350–500px tidak muat di kolom tengah dan terpotong secara prematur.
+- **Solusi Kode:**
+  1. **Nyalakan `_lyricsTimer` di Mode Compact Saat Media Playing:**
+     ```csharp
+     bool shouldRunLyrics = (_isExpanded && !_isMusicExpanded) ||
+                            (_isMusicCompactMode && _settings.ShowCompactLyrics && (_currentMediaInfo?.IsPlaying ?? false));
+     SetTimerEnabled(_lyricsTimer, shouldRunLyrics);
+     ```
+  2. **Auto-Trigger Lirik Saat Resume Playback:**
+     Di `MainWindow.Media.cs`, saat `info.IsPlaying` kembali bernilai true untuk track yang sama:
+     - Jika cache `_currentLyrics` sudah ada: langsung panggil `UpdateLyricsDisplay()` detik itu juga.
+     - Jika cache kosong: panggil `FetchLyricsForTrack(info)` untuk mengunduh ulang lirik LRCLIB.
+  3. **Lebar Dinamis Penuh Mengikuti Panjang Lirik:**
+     Di `MainWindow.Lyrics.cs` dan `MainWindow.CompactPill.cs`, batas pelebaran dibuka leluasa hingga `700px` (`SystemParameters.PrimaryScreenWidth * 0.70`). Notch otomatis memanjang secara mulus (`CubicEase`, `300ms`) mengikuti seluruh kalimat lirik tanpa terpotong, dan menyusut kembali saat kalimat pendek.
+  - File terkait: `Windows/MainWindow.Progress.cs`, `Windows/MainWindow.Media.cs`, `Windows/MainWindow.Lyrics.cs`, `Windows/MainWindow.CompactPill.cs`.

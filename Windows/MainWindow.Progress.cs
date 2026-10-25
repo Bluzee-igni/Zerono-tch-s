@@ -171,7 +171,8 @@ public partial class MainWindow
              _currentMediaInfo.Duration.TotalSeconds > 0 ||
              _currentMediaInfo.IsAnyMediaPlaying);
         bool shouldRunProgress = isExpanded && hasTimeline;
-        bool shouldRunLyrics = _isExpanded && !_isMusicExpanded;
+        bool shouldRunLyrics = (_isExpanded && !_isMusicExpanded) ||
+                               (_isMusicCompactMode && _settings.ShowCompactLyrics && (_currentMediaInfo?.IsPlaying ?? false));
         bool shouldRunVolumeSync = _isExpanded && _isMusicExpanded;
 
         MediaPlayback.UpdateProgressTimerState();

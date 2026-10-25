@@ -223,8 +223,10 @@ public partial class MainWindow
             double targetActiveW = _collapsedWidth;
             if (!string.IsNullOrWhiteSpace(_lastCompactLyricLine))
             {
-                double textW = MeasureCompactTextWidth(_lastCompactLyricLine) + 90;
-                targetActiveW = Math.Max(_collapsedWidth, Math.Min(440, textW));
+                double textW = MeasureCompactTextWidth(_lastCompactLyricLine);
+                double requiredWidth = textW + (isMicMuted ? 150 : 120);
+                double maxScreenWidth = Math.Max(750, SystemParameters.PrimaryScreenWidth * 0.70);
+                targetActiveW = Math.Max(_collapsedWidth, Math.Min(maxScreenWidth, requiredWidth));
             }
             TransitionToCompactSize(targetActiveW, _collapsedHeight);
             return;

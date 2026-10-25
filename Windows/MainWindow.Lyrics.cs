@@ -1299,8 +1299,11 @@ public partial class MainWindow
             if (string.Equals(_lastCompactLyricLine, currentText, StringComparison.Ordinal)) return;
             _lastCompactLyricLine = currentText;
 
+            bool isMicMuted = _micMonitorService?.IsMuted ?? false;
             double textWidth = MeasureCompactTextWidth(currentText);
-            double targetWidth = Math.Max(_collapsedWidth, Math.Min(600, textWidth + 100));
+            double requiredWidth = textWidth + (isMicMuted ? 150 : 120);
+            double maxScreenWidth = Math.Max(750, SystemParameters.PrimaryScreenWidth * 0.70);
+            double targetWidth = Math.Max(_collapsedWidth, Math.Min(maxScreenWidth, requiredWidth));
             TransitionToCompactSize(targetWidth, _collapsedHeight);
 
             CompactTrackFallbackText.BeginAnimation(OpacityProperty, null);
@@ -1328,8 +1331,12 @@ public partial class MainWindow
                     : $"{_currentMediaInfo.CurrentTrack} • {_currentMediaInfo.CurrentArtist}";
             }
 
+            bool isMicMuted = _micMonitorService?.IsMuted ?? false;
             double fallbackWidth = MeasureCompactTextWidth(fallback);
-            double targetFallbackW = Math.Max(_collapsedWidth, Math.Min(480, fallbackWidth + 100));
+            double requiredFallbackWidth = fallbackWidth + (isMicMuted ? 150 : 120);
+            double targetFallbackW = string.IsNullOrWhiteSpace(fallback)
+                ? _collapsedWidth
+                : Math.Max(_collapsedWidth, Math.Min(560, requiredFallbackWidth));
             TransitionToCompactSize(targetFallbackW, _collapsedHeight);
 
             CompactTrackFallbackText.Text = fallback;
