@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using VNotch.Controllers;
@@ -66,7 +67,7 @@ public partial class MainWindow
         MicMutedBadge.Visibility = isMuted ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void MicMutedBadge_Click(object sender, RoutedEventArgs e)
+    private void MicMutedBadge_Click(object sender, MouseButtonEventArgs e)
     {
         _micMonitorService?.ToggleMute();
     }

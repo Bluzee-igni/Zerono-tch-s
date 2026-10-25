@@ -232,7 +232,8 @@ public partial class MainWindow : Window
         SystemMonitorModule systemMonitorModule,
         ISpotlightController spotlightController,
         VNotch.Controllers.NotchTransitionCoordinator? transitionCoordinator = null,
-        VNotch.Services.Clipboard.ClipboardHistoryStore? clipboardHistoryStore = null)
+        VNotch.Services.Clipboard.ClipboardHistoryStore? clipboardHistoryStore = null,
+        IVolumeService? volumeService = null)
     {
         InitializeComponent();
         InitializeShellCornerRadiusSync();
@@ -324,7 +325,7 @@ public partial class MainWindow : Window
         _notchManager = new NotchManager(this, _settings, _transitionCoordinator);
         _mediaService = mediaService;
         _updateService = updateService;
-        _volumeService = App.Services.GetService(typeof(IVolumeService)) as IVolumeService;
+        _volumeService = volumeService ?? (App.Services != null ? App.Services.GetService(typeof(IVolumeService)) as IVolumeService : null);
         if (_volumeService != null)
         {
             _volumeService.VolumeChanged += OnHardwareVolumeChanged;
@@ -678,28 +679,40 @@ public partial class MainWindow : Window
         _cleanedUp = true;
         DiscardPreparedSettingsWindow();
         StopLiquidGlass();
-        _moduleHost.StopAll();
+        _moduleHost?.StopAll();
         DisposeGreetingLifecycle();
         DisposeSessionUnlockFeedback();
-        _mediaUpdates.Dispose();
+        _mediaUpdates?.Dispose();
 
-        _notchManager.HoverService.HoverEnter -= HoverService_HoverEnter;
-        _notchManager.HoverService.HoverLeave -= HoverService_HoverLeave;
-        _notchManager.HoverService.MousePositionChanged -= HoverService_MousePositionChangedForDesktopReveal;
-        _viewModel.Media.PlayPauseToggled -= OnViewModelPlayPauseToggled;
-        _viewModel.MediaInfoUpdated -= ViewModel_MediaInfoUpdated;
-        if (_viewModel.IsExpandedCheck == _isExpandedCheck) _viewModel.IsExpandedCheck = null;
-        _batteryModule.BatteryUpdated -= BatteryModule_BatteryUpdated;
-        _bluetoothModule.DeviceConnected -= BluetoothModule_DeviceConnected;
-        _bluetoothModule.DeviceDisconnected -= BluetoothModule_DeviceDisconnected;
+        if (_notchManager?.HoverService != null)
+        {
+            _notchManager.HoverService.HoverEnter -= HoverService_HoverEnter;
+            _notchManager.HoverService.HoverLeave -= HoverService_HoverLeave;
+            _notchManager.HoverService.MousePositionChanged -= HoverService_MousePositionChangedForDesktopReveal;
+        }
+        if (_viewModel != null)
+        {
+            if (_viewModel.Media != null)
+            {
+                _viewModel.Media.PlayPauseToggled -= OnViewModelPlayPauseToggled;
+            }
+            _viewModel.MediaInfoUpdated -= ViewModel_MediaInfoUpdated;
+            if (_viewModel.IsExpandedCheck == _isExpandedCheck) _viewModel.IsExpandedCheck = null;
+        }
+        if (_batteryModule != null) _batteryModule.BatteryUpdated -= BatteryModule_BatteryUpdated;
+        if (_bluetoothModule != null)
+        {
+            _bluetoothModule.DeviceConnected -= BluetoothModule_DeviceConnected;
+            _bluetoothModule.DeviceDisconnected -= BluetoothModule_DeviceDisconnected;
+        }
         AnimationConfig.ReduceMotionChanged -= OnReduceMotionChanged;
         if (_volumeService != null)
         {
             _volumeService.VolumeChanged -= OnHardwareVolumeChanged;
         }
         DisposeCalendarPresenter();
-        _privacyModule.StateChanged -= PrivacyModule_StateChanged;
-        WeatherWidgetView.Dispose();
+        if (_privacyModule != null) _privacyModule.StateChanged -= PrivacyModule_StateChanged;
+        WeatherWidgetView?.Dispose();
         DisposeSystemMonitorPresenter();
 
         InputMonitorService.MouseActionTriggered -= GlobalMouseHook_MouseLeftButtonDown;
@@ -712,11 +725,11 @@ public partial class MainWindow : Window
         _invisibleHotkey = null;
         _liveTranslation?.Dispose();
         _liveTranslation = null;
-        _clipboardListener.Dispose();
-        _overlayWindow.Dispose();
+        _clipboardListener?.Dispose();
+        _overlayWindow?.Dispose();
         StopZOrderWatchdog();
         StopTitleGradientShift();
-        MediaPlayback.Dispose();
+        MediaPlayback?.Dispose();
         _lyricsTimer?.Stop();
         _volumeSyncTimer?.Stop();
         _lyricsService?.Dispose();

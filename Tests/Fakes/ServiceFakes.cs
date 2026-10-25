@@ -143,6 +143,8 @@ public sealed class FakeVolumeService : IVolumeService
     }
 
     public bool IsAvailable { get; }
+    public event Action<float, bool>? VolumeChanged;
+    public void RaiseVolumeChanged(float volume, bool isMuted) => VolumeChanged?.Invoke(volume, isMuted);
     public float? LastSetVolume { get; private set; }
     public int ToggleMuteCount { get; private set; }
 

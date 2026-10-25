@@ -111,6 +111,8 @@ public sealed class VolumeEndpointLifecycleTests
 
     private sealed class FakeEndpoint : IVolumeEndpoint
     {
+        public event Action<float, bool>? VolumeChanged;
+        public void RaiseVolumeChanged(float volume, bool isMuted) => VolumeChanged?.Invoke(volume, isMuted);
         public float Volume { get; set; }
         public bool IsMuted { get; set; }
         public int DisposeCount { get; private set; }

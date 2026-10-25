@@ -48,6 +48,21 @@
   <b>Free and open source forever.</b>
 </p>
 
+> [!IMPORTANT]
+> ### 📢 Pernyataan Non-Komersial & Open-Source / Non-Commercial & Open-Source Statement
+>
+> 🇮🇩 **Bahasa Indonesia:**
+> 1. **100% Non-Komersial**: Repositori dan proyek ini **TIDAK AKAN PERNAH dikomersialkan atau diperjualbelikan** dalam bentuk apa pun.
+> 2. **Kebutuhan Pribadi & Pembelajaran**: Modifikasi serta pengembangan pada repositori ini dikerjakan murni untuk memenuhi kebutuhan pribadi saya sendiri (sebagai pelajar/siswa IT) dalam menunjang produktivitas harian.
+> 3. **Gratis & Terbuka untuk Semua**: Seluruh source code dan aplikasi ini **sepenuhnya gratis untuk diunduh (free to download)**, digunakan, dan dipelajari oleh siapa saja yang membutuhkan, dengan tetap menghormati dan mematuhi lisensi open-source aslinya: [Apache License 2.0](LICENSE) dari upstream [rainaku/V-Notch](https://github.com/rainaku/V-Notch).
+>
+> ---
+>
+> 🇬🇧 **English:**
+> 1. **100% Non-Commercial**: This repository and project is strictly **NON-COMMERCIAL** and will **NEVER be sold or monetized** in any manner.
+> 2. **Personal & Educational Purpose**: Developments and architectural enhancements in this repository are done purely for personal daily productivity needs as an IT student.
+> 3. **Completely Free to Download & Learn**: The application and entire source code are **100% free to download**, use, and study for anyone who finds it helpful, while fully honoring and adhering to the original open-source license: [Apache License 2.0](LICENSE) from upstream [rainaku/V-Notch](https://github.com/rainaku/V-Notch).
+
 <p align="center">
   V-Notch is an independent project.<br>
   If you use it regularly, you can <a href="https://www.paypal.me/PhuocLe678"><b>support development via PayPal</b></a>.
@@ -225,6 +240,7 @@ If you like V-Notch, check out other free and open-source Windows utilities by r
 ## License
 
 V-Notch uses the Apache License 2.0. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+This personal fork remains 100% free, non-commercial, and open-source under the Apache License 2.0, preserving all original attributions to [rainaku/V-Notch](https://github.com/rainaku/V-Notch).
 
 <p align="center">
   Made by <a href="https://rainaku.id.vn">rainaku</a> ·
